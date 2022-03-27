@@ -4,7 +4,7 @@ import mapboxgl from 'mapbox-gl';
 import { path } from './flight.json';
 import { geoInterpolate } from 'd3-geo';
 import { interpolateNumber } from 'd3-interpolate';
-import { interpolate, along, lineString, featureEach, length, booleanEqual, booleanPointOnLine } from '@turf/turf';
+import { interpolate, nearestPointOnLine, along, point, lineString, featureEach, length, booleanEqual, booleanPointOnLine, multiLineString, featureCollection, lineSlice } from '@turf/turf';
 
 if (import.meta.hot) {
     import.meta.hot.accept((newModule) => {
@@ -40,6 +40,16 @@ const convertPathToGeoJson = (path) => {
 const flight = convertPathToGeoJson(path);
 
 const flightLine = lineString(flight.features.map(p => p.geometry.coordinates));
+const flightLinesCollection = featureCollection(flight.features.map((p, index) => {
+    if (index < flight.features.length - 1) {
+        return lineString([p.geometry.coordinates, flight.features[index + 1].geometry.coordinates], {
+            altitude: [p.properties.baro_altitude, flight.features[index + 1].properties.baro_altitude],
+            bearing: [p.properties.true_track, flight.features[index + 1].properties.true_track],
+        })
+    }
+}))
+
+flightLinesCollection.features = flightLinesCollection.features.filter(p => p !== undefined);
 
 
 // enrichFlightPath()
@@ -47,10 +57,31 @@ const flightLine = lineString(flight.features.map(p => p.geometry.coordinates));
 mapboxgl.accessToken = 'pk.eyJ1IjoiZW1vbmlkaSIsImEiOiJjajdqd3pvOHYwaThqMzJxbjYyam1lanI4In0.V_4P8bJqzHxM2W9APpkf1w';
 const map = new mapboxgl.Map({
     container: 'map',
-   
+
     center: [...flight.features[1].geometry.coordinates],
-  
+
     style: 'mapbox://styles/mapbox/satellite-v9',
+    // style: {
+    //     'version': 8,
+    //     'sources': {
+    //         'raster-tiles': {
+    //             'type': 'raster',
+    //             'tiles': [
+    //                 'https://api.maptiler.com/tiles/satellite-mediumres/{z}/{x}/{y}.jpg?key=e1RrPnLOPEw0LCkLeKYK',
+    //             ],
+    //             'tileSize': 256
+    //         }
+    //     },
+    //     'layers': [
+    //         {
+    //             'id': 'simple-tiles',
+    //             'type': 'raster',
+    //             'source': 'raster-tiles',
+    //             'minzoom': 0,
+    //             'maxzoom': 22
+    //         }
+    //     ]
+    // },
     interactive: true
 });
 
@@ -61,10 +92,10 @@ const camera = map.getFreeCameraOptions();
 map.on('load', () => {
 
     map.addSource('mapbox-dem', {
-    'type': 'raster-dem',
-    'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
-    'tileSize': 1024,
-    'maxzoom': 14
+        'type': 'raster-dem',
+        'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
+        'tileSize': 256,
+        'maxzoom': 14
     });
     map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1 });
     map.addLayer({
@@ -97,71 +128,97 @@ map.on('load', () => {
             ]
         }
     });
-    
-    
-   
 
-   
+
+    map.addSource('flightLine', {
+        type: 'geojson',
+        data: flightLine
+    })
+
+    map.addLayer({
+        'id': 'flightLine',
+        'type': 'line',
+        'source': 'flightLine',
+        'layout': {
+            'line-join': 'round',
+            'line-cap': 'round'
+        },
+        'paint': {
+            'line-color': '#888',
+            'line-width': 8
+        }
+    })
+
 });
 
-document.getElementById('map').addEventListener('click', ()=>{
+document.getElementById('map').addEventListener('click', () => {
     animate()
 });
 
-animate(true)
+animate(true);
+let div = document.createElement('div');
+div.setAttribute('id', 'help');
+document.body.appendChild(div);
+function animate(justOnce) {
 
-function animate(justOnce){
-    let currentPoint = 0;
-    let flightTime = flight.features[0].properties.time;
-    let lineFlightTime = flight.features[0].properties.time;
-    let start;
-    let interpolateCoords;
-    function frame(frameTime) {
+    let start = 0;
+    const routeDistance = length(flightLine, { units: 'kilometers' });
 
-        if (!start) start = frameTime;
+    function frame(time) {
+        if (!start) start = time;
+        const phase = (time - start) / (20 * 60 * 1000);
 
-        // interpolateCoords = geoInterpolate(
-        //     [...flight.features[currentPoint].geometry.coordinates],
-        //     [...flight.features[currentPoint + 1].geometry.coordinates]
-        // );
-
-        
-
-        lineFlightTime = lineFlightTime + ((frameTime - start));
-
-        const linePhase = ((lineFlightTime - flight.features[currentPoint].properties.time) / lineFlightTime)*500000;
-
-        const line = lineString([flight.features[currentPoint].geometry.coordinates, flight.features[currentPoint + 1].geometry.coordinates]);
-        const lineDistance = length(line, { units: 'meters' });
-        const flightPoint = along(line, lineDistance*linePhase, { units: 'meters' });
-        console.log(flightPoint);
-        if (linePhase >= 1) {
-            console.log(path[currentPoint],currentPoint)
-            currentPoint = currentPoint + 1;
-            console.log("currentPoint:" + currentPoint);
-            lineFlightTime = flight.features[currentPoint].properties.time;
-            requestAnimationFrame(frame);
-            return;
-        }
-        // console.log(linePhase)
-        // const interpolatedCoords = interpolateCoords(linePhase);
-        // console.log(interpolatedCoords)
-        
-        camera.position = mapboxgl.MercatorCoordinate.fromLngLat(
-            {
-                lng: flightPoint.geometry.coordinates[0],
-                lat: flightPoint.geometry.coordinates[1]
-            },
-            interpolateNumber(flight.features[currentPoint].properties.baro_altitude, flight.features[currentPoint + 1].properties.baro_altitude)(linePhase)
+        const alongRoute = along(
+            flightLine,
+            routeDistance * phase
         );
 
-      
-        camera.setPitchBearing(80, interpolateNumber(flight.features[currentPoint].properties.true_track, flight.features[currentPoint + 1].properties.true_track)(linePhase));
-        start = frameTime;
-        !justOnce && requestAnimationFrame(frame);
+
+        const segmentLine = flightLinesCollection.features.map((f, i) => {
+            const res = nearestPointOnLine(f, alongRoute, { units: 'meters' });
+            res.properties.lineIndex = i
+            return res;
+        }).sort((a, b) => a.properties.dist - b.properties.dist);
+
+        const segmentLineIndex = segmentLine[0].properties.lineIndex;
+
+        const segmentLength = length(flightLinesCollection.features[segmentLineIndex], { units: 'meters' })
+        const segmentDistance = length(
+            lineSlice(
+                point(flightLinesCollection.features[segmentLineIndex].geometry.coordinates[0]),
+                alongRoute,
+                flightLinesCollection.features[segmentLineIndex]
+            ), { units: 'meters' }
+        )
+        const segmentPhase = segmentDistance / segmentLength;
+        div.innerHTML = `
+                    Segment index ${segmentLineIndex}
+                    <pre>
+                    ${JSON.stringify(flightLinesCollection.features[segmentLineIndex].properties, null, 4)}
+                    </pre>
+                    <br/>Segment length: ${segmentLength}
+                    <br/>Segment phase:${segmentPhase}`;
+
+
+        camera.position = mapboxgl.MercatorCoordinate.fromLngLat(
+            {
+                lng: alongRoute.geometry.coordinates[0],
+                lat: alongRoute.geometry.coordinates[1]
+            },
+            interpolateNumber(
+                flightLinesCollection.features[segmentLineIndex].properties.altitude[0],
+                flightLinesCollection.features[segmentLineIndex].properties.altitude[1])(segmentPhase)
+        );
+
+        const bearing = interpolateNumber(
+            flightLinesCollection.features[segmentLineIndex].properties.bearing[0],
+            flightLinesCollection.features[segmentLineIndex].properties.bearing[1])(segmentPhase)
+        camera.setPitchBearing(80, bearing)
+
         map.setFreeCameraOptions(camera);
 
+        !justOnce && window.requestAnimationFrame(frame);
     }
 
-    requestAnimationFrame(frame)
+    window.requestAnimationFrame(frame);
 }
