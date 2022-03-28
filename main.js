@@ -1,10 +1,12 @@
-import './style.css';
+import './style.scss';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import mapboxgl from 'mapbox-gl';
 import { path } from './flight.json';
 import { geoInterpolate } from 'd3-geo';
 import { interpolateNumber } from 'd3-interpolate';
 import { interpolate, nearestPointOnLine, along, point, lineString, featureEach, length, booleanEqual, booleanPointOnLine, multiLineString, featureCollection, lineSlice } from '@turf/turf';
+import ControlBar from './controlbar';
+
 
 if (import.meta.hot) {
     import.meta.hot.accept((newModule) => {
@@ -12,7 +14,7 @@ if (import.meta.hot) {
     })
 }
 
-
+const controlBar = new ControlBar(document.getElementById('controlbar'));
 
 const convertPathToGeoJson = (path) => {
     const geoJson = {
@@ -159,6 +161,24 @@ animate(true);
 let div = document.createElement('div');
 div.setAttribute('id', 'help');
 document.body.appendChild(div);
+let timeElapsed = 0;
+let duration = 10*60*1000;
+
+controlBar.setOnCliderChangeCallback((value)=>{
+    timeElapsed = duration/100*value;
+    console.log(timeElapsed)
+    !controlBar.isPlaying && animate(true); 
+})
+
+const playButton = document.getElementById('play');
+
+playButton.addEventListener('click', () => {
+    controlBar.togglePlay();
+    document.querySelectorAll('.mdc-icon-button__icon').forEach(el => el.classList.toggle('mdc-icon-button__icon--on'));
+    animate();
+    
+})
+
 function animate(justOnce) {
 
     let start = 0;
@@ -166,8 +186,10 @@ function animate(justOnce) {
 
     function frame(time) {
         if (!start) start = time;
-        const phase = (time - start) / (20 * 60 * 1000);
-
+        const delta = time-start 
+        timeElapsed+=delta;
+        const phase = timeElapsed / duration;
+        console.log(timeElapsed / 1000)
         const alongRoute = along(
             flightLine,
             routeDistance * phase
@@ -216,8 +238,12 @@ function animate(justOnce) {
         camera.setPitchBearing(80, bearing)
 
         map.setFreeCameraOptions(camera);
-
-        !justOnce && window.requestAnimationFrame(frame);
+        controlBar.setProgress(phase*100);
+        start = time;
+        if(!justOnce && !controlBar.isPlaying) return;
+        if(phase>= 1) return;
+        !justOnce  && window.requestAnimationFrame(frame);
+        
     }
 
     window.requestAnimationFrame(frame);
