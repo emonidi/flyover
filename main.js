@@ -99,7 +99,7 @@ map.on('load', () => {
         'tileSize': 256,
         'maxzoom': 14
     });
-    map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1 });
+    map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.3 });
     map.addLayer({
         'id': 'sky',
         'type': 'sky',
