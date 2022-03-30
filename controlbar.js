@@ -4,6 +4,8 @@ import '@material/mwc-button';
 // import {MDCRipple} from '@material/ripple';
 
 
+
+
 export default class ControlBar {
     constructor(container){
         this.container = container;
@@ -13,6 +15,7 @@ export default class ControlBar {
         this.increaseButton = container.querySelector('#speed_up');
         this.decreaseButton = container.querySelector('#speed_down');
         this.speedLabel = container.querySelector("#speed-label")
+      
     }
 
     togglePlay(){
@@ -26,6 +29,7 @@ export default class ControlBar {
 
 
     setOnCliderChangeCallback(callback){
+        
         this.slider.listen('MDCSlider:input',(ev)=>{
             callback(ev.detail.value)
         })

@@ -18,6 +18,7 @@ if (import.meta.hot) {
 
 const controlBar = new ControlBar(document.getElementById('controlbar'));
 
+
 const convertPathToGeoJson = (path) => {
     const geoJson = {
         "type": "FeatureCollection",
@@ -56,8 +57,6 @@ const flightLinesCollection = featureCollection(flight.features.map((p, index) =
 flightLinesCollection.features = flightLinesCollection.features.filter(p => p !== undefined);
 
 
-// enrichFlightPath()
-
 mapboxgl.accessToken = 'pk.eyJ1IjoiZW1vbmlkaSIsImEiOiJjajdqd3pvOHYwaThqMzJxbjYyam1lanI4In0.V_4P8bJqzHxM2W9APpkf1w';
 const map = new mapboxgl.Map({
     container: 'map',
@@ -65,33 +64,10 @@ const map = new mapboxgl.Map({
     center: [...flight.features[1].geometry.coordinates],
 
     style: 'mapbox://styles/mapbox/satellite-v9',
-    // style: {
-    //     'version': 8,
-    //     'sources': {
-    //         'raster-tiles': {
-    //             'type': 'raster',
-    //             'tiles': [
-    //                 'https://api.maptiler.com/tiles/satellite-mediumres/{z}/{x}/{y}.jpg?key=e1RrPnLOPEw0LCkLeKYK',
-    //             ],
-    //             'tileSize': 256
-    //         }
-    //     },
-    //     'layers': [
-    //         {
-    //             'id': 'simple-tiles',
-    //             'type': 'raster',
-    //             'source': 'raster-tiles',
-    //             'minzoom': 0,
-    //             'maxzoom': 22
-    //         }
-    //     ]
-    // },
     interactive: true
 });
 
 const camera = map.getFreeCameraOptions();
-
-
 
 map.on('load', () => {
 
@@ -160,9 +136,7 @@ document.getElementById('map').addEventListener('click', () => {
 });
 
 animate(true);
-// let div = document.createElement('div');
-// div.setAttribute('id', 'help');
-// document.body.appendChild(div);
+
 
 const totalDuration = (path[path.length-1][0] - path[0][0])*1000;
 
