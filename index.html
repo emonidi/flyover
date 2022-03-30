@@ -1,14 +1,57 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="favicon.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <link href="https://api.mapbox.com/mapbox-gl-js/v2.7.0/mapbox-gl.css" rel="stylesheet">
-    <title>Vite App</title>
-  </head>
-  <body>
-    <div id="map"></div>
-    <script type="module" src="/main.js"></script>
-  </body>
+
+<head>
+  <meta charset="UTF-8" />
+  <link rel="icon" type="image/svg+xml" href="favicon.svg" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <link href="https://api.mapbox.com/mapbox-gl-js/v2.7.0/mapbox-gl.css" rel="stylesheet">
+  <link rel="stylesheet" href="https://fonts.googleapis.com/icon?family=Material+Icons">
+  <script type="module" src="/main.js"></script>
+  <title>Relive flight</title>
+</head>
+
+<body>
+  <div id="map"></div>
+  <div id="controlbar">
+    <div class="buttons">
+      <button id="play" class="mdc-icon-button" aria-label="Speed up" aria-pressed="false"> 
+        <i class="material-icons mdc-icon-button__icon mdc-icon-button__icon--on">pause</i>
+        <i class="material-icons mdc-icon-button__icon">play_arrow</i>
+      </button>
+    </div>
+    <div class="speed">
+      <button id="speed_up" class="mdc-icon-button" aria-label="Speed up" aria-pressed="false"> 
+        <span class="material-icons">add</span>          
+      </button>
+      <div class="speed-label">
+        <span id="speed-label" class="mdc-icon-button">1x</span>
+      </div>
+      <button id="speed_down" class="mdc-icon-button" aria-label="Speed down" aria-pressed="false"> 
+        <span class="material-icons">
+          remove
+          </span>  
+      </button>
+    </div>
+    <div class="mdc-slider">
+      <input class="mdc-slider__input" type="range" min="0" max="100" value="50" name="volume"
+        aria-label="Continuous slider demo">
+      <div class="mdc-slider__track">
+        <div class="mdc-slider__track--inactive"></div>
+        <div class="mdc-slider__track--active">
+          <div class="mdc-slider__track--active_fill"></div>
+        </div>
+      </div>
+      <div class="mdc-slider__thumb">
+        <div class="mdc-slider__thumb-knob">
+          <span class="material-icons plane_icon">
+            flight
+            </span>
+        </div>
+      </div>
+    </div>
+  </div>
+  
+</body>
+
 </html>

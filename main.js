@@ -1,10 +1,12 @@
-import './style.css';
+import './style.scss';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import mapboxgl from 'mapbox-gl';
 import { path } from './flight.json';
 import { geoInterpolate } from 'd3-geo';
 import { interpolateNumber } from 'd3-interpolate';
 import { interpolate, nearestPointOnLine, along, point, lineString, featureEach, length, booleanEqual, booleanPointOnLine, multiLineString, featureCollection, lineSlice } from '@turf/turf';
+import ControlBar from './controlbar';
+
 
 if (import.meta.hot) {
     import.meta.hot.accept((newModule) => {
@@ -12,6 +14,9 @@ if (import.meta.hot) {
     })
 }
 
+
+
+const controlBar = new ControlBar(document.getElementById('controlbar'));
 
 
 const convertPathToGeoJson = (path) => {
@@ -52,8 +57,6 @@ const flightLinesCollection = featureCollection(flight.features.map((p, index) =
 flightLinesCollection.features = flightLinesCollection.features.filter(p => p !== undefined);
 
 
-// enrichFlightPath()
-
 mapboxgl.accessToken = 'pk.eyJ1IjoiZW1vbmlkaSIsImEiOiJjajdqd3pvOHYwaThqMzJxbjYyam1lanI4In0.V_4P8bJqzHxM2W9APpkf1w';
 const map = new mapboxgl.Map({
     container: 'map',
@@ -61,33 +64,10 @@ const map = new mapboxgl.Map({
     center: [...flight.features[1].geometry.coordinates],
 
     style: 'mapbox://styles/mapbox/satellite-v9',
-    // style: {
-    //     'version': 8,
-    //     'sources': {
-    //         'raster-tiles': {
-    //             'type': 'raster',
-    //             'tiles': [
-    //                 'https://api.maptiler.com/tiles/satellite-mediumres/{z}/{x}/{y}.jpg?key=e1RrPnLOPEw0LCkLeKYK',
-    //             ],
-    //             'tileSize': 256
-    //         }
-    //     },
-    //     'layers': [
-    //         {
-    //             'id': 'simple-tiles',
-    //             'type': 'raster',
-    //             'source': 'raster-tiles',
-    //             'minzoom': 0,
-    //             'maxzoom': 22
-    //         }
-    //     ]
-    // },
     interactive: true
 });
 
 const camera = map.getFreeCameraOptions();
-
-
 
 map.on('load', () => {
 
@@ -97,7 +77,7 @@ map.on('load', () => {
         'tileSize': 256,
         'maxzoom': 14
     });
-    map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1 });
+    map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.3 });
     map.addLayer({
         'id': 'sky',
         'type': 'sky',
@@ -156,9 +136,53 @@ document.getElementById('map').addEventListener('click', () => {
 });
 
 animate(true);
-let div = document.createElement('div');
-div.setAttribute('id', 'help');
-document.body.appendChild(div);
+
+
+const totalDuration = (path[path.length-1][0] - path[0][0])*1000;
+
+
+const speeds = [1,2,4,8,12,24,36,48]
+let speed = speeds[0];
+
+let timeElapsed = 0;
+let duration = totalDuration/speed;
+
+let phase = 0;
+
+controlBar.setOnCliderChangeCallback((value)=>{
+    timeElapsed = duration/100*value;
+    !controlBar.isPlaying && animate(true); 
+})
+
+const playButton = document.getElementById('play');
+
+playButton.addEventListener('click', () => {
+    controlBar.togglePlay();
+    document.querySelectorAll('.mdc-icon-button__icon').forEach(el => el.classList.toggle('mdc-icon-button__icon--on'));
+    animate();  
+})
+
+controlBar.setOnSpeedIncreaseCallback((ev)=>{
+    const speedIndex = speeds.indexOf(speed);
+    if(speedIndex < speeds.length-1){
+        speed = speeds[speedIndex+1];
+      
+        controlBar.setSpeed(speed)
+    }
+})
+
+controlBar.setOnSpeedDecreaseCallback((ev)=>{
+    const speedIndex = speeds.indexOf(speed);
+    if(speedIndex >= 0){
+        speed = speeds[speedIndex-1];
+      
+        controlBar.setSpeed(speed)
+    }
+})
+
+controlBar.setSpeed(speed)
+
+
 function animate(justOnce) {
 
     let start = 0;
@@ -166,8 +190,10 @@ function animate(justOnce) {
 
     function frame(time) {
         if (!start) start = time;
-        const phase = (time - start) / (20 * 60 * 1000);
-
+        const delta = (time-start)*speed 
+        timeElapsed+=delta;
+        phase = timeElapsed / duration;
+       
         const alongRoute = along(
             flightLine,
             routeDistance * phase
@@ -191,13 +217,13 @@ function animate(justOnce) {
             ), { units: 'meters' }
         )
         const segmentPhase = segmentDistance / segmentLength;
-        div.innerHTML = `
-                    Segment index ${segmentLineIndex}
-                    <pre>
-                    ${JSON.stringify(flightLinesCollection.features[segmentLineIndex].properties, null, 4)}
-                    </pre>
-                    <br/>Segment length: ${segmentLength}
-                    <br/>Segment phase:${segmentPhase}`;
+        //  div.innerHTML = `
+        //             Segment index ${segmentLineIndex}
+        //             <pre>
+        //             ${JSON.stringify(flightLinesCollection.features[segmentLineIndex].properties, null, 4)}
+        //             </pre>
+        //             <br/>Segment length: ${segmentLength}
+        //             <br/>Segment phase:${segmentPhase}`;
 
 
         camera.position = mapboxgl.MercatorCoordinate.fromLngLat(
@@ -216,8 +242,13 @@ function animate(justOnce) {
         camera.setPitchBearing(80, bearing)
 
         map.setFreeCameraOptions(camera);
-
-        !justOnce && window.requestAnimationFrame(frame);
+        
+        start = time;
+        if(!justOnce && !controlBar.isPlaying) return;
+        controlBar.setProgress(phase*100);
+        if(phase>= 1) return;
+        !justOnce  && window.requestAnimationFrame(frame);
+        
     }
 
     window.requestAnimationFrame(frame);

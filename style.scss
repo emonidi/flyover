@@ -1,0 +1,77 @@
+@use "@material/icon-button" as icon-button;
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@100;300&display=swap');
+@import "material-components-web/material-components-web";
+
+#app {
+  font-family: 'Roboto', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-align: center;
+  color: #2c3e50;
+  margin-top: 60px;
+}
+
+body{
+  font-family: 'Roboto', sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  padding: 0;
+  margin: 0;
+}
+
+#map { position: absolute; top: 0; bottom: 0; width: 100%; }
+#help{
+  position: absolute;
+  top:0;
+  width:300px;
+  height:450px;
+  z-index:1000000;
+  background-color:white;
+}
+
+#controlbar{
+  display: none;
+  position: absolute;
+  bottom:0;
+  width:100%;
+  height:50px;
+  z-index:1000000;
+  background-color:white;
+  display: flex;
+  flex-direction: row;
+
+  .speed{
+    display: flex;
+    flex-direction: row;
+    justify-content: center;
+  }
+
+  .mdc-slider{
+    width: 100%;
+  }
+
+  .plane_icon{
+    color: #6200ee;
+    transform: rotateZ(90deg) translate(-6px,0);
+    font-size: 32px;
+  }
+
+  .mdc-slider__thumb-knob {
+    background-color: transparent;
+    color: transparent;
+    box-shadow: none;
+    border: none;
+  }
+
+  .mdc-slider__thumb::after,.mdc-slider__thumb::before{
+    background-color: transparent;
+  }
+ 
+  .speed{
+    button{
+      &:active{
+        background-color: rgba(0, 0, 0, 0.54);
+      }
+    }
+  }
+}

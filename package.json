@@ -8,12 +8,18 @@
     "preview": "vite preview"
   },
   "devDependencies": {
+    "sass": "^1.49.9",
     "vite": "^2.8.0"
   },
   "dependencies": {
+    "@material/button": "^13.0.0",
+    "@material/mwc-button": "^0.25.3",
+    "@material/slider": "^13.0.0",
     "@turf/turf": "^6.5.0",
+    "@webcomponents/webcomponentsjs": "^2.6.0",
     "d3-geo": "^3.0.1",
     "d3-interpolate": "^3.0.1",
-    "mapbox-gl": "^2.7.1"
+    "mapbox-gl": "^2.7.1",
+    "material-components-web": "^13.0.0"
   }
 }
