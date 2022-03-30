@@ -14,6 +14,8 @@ if (import.meta.hot) {
     })
 }
 
+
+
 const controlBar = new ControlBar(document.getElementById('controlbar'));
 
 const convertPathToGeoJson = (path) => {
@@ -158,15 +160,23 @@ document.getElementById('map').addEventListener('click', () => {
 });
 
 animate(true);
-let div = document.createElement('div');
-div.setAttribute('id', 'help');
-document.body.appendChild(div);
+// let div = document.createElement('div');
+// div.setAttribute('id', 'help');
+// document.body.appendChild(div);
+
+const totalDuration = (path[path.length-1][0] - path[0][0])*1000;
+
+
+const speeds = [1,2,4,8,12,24,36,48]
+let speed = speeds[0];
+
 let timeElapsed = 0;
-let duration = 10*60*1000;
+let duration = totalDuration/speed;
+
+let phase = 0;
 
 controlBar.setOnCliderChangeCallback((value)=>{
     timeElapsed = duration/100*value;
-    console.log(timeElapsed)
     !controlBar.isPlaying && animate(true); 
 })
 
@@ -175,9 +185,29 @@ const playButton = document.getElementById('play');
 playButton.addEventListener('click', () => {
     controlBar.togglePlay();
     document.querySelectorAll('.mdc-icon-button__icon').forEach(el => el.classList.toggle('mdc-icon-button__icon--on'));
-    animate();
-    
+    animate();  
 })
+
+controlBar.setOnSpeedIncreaseCallback((ev)=>{
+    const speedIndex = speeds.indexOf(speed);
+    if(speedIndex < speeds.length-1){
+        speed = speeds[speedIndex+1];
+      
+        controlBar.setSpeed(speed)
+    }
+})
+
+controlBar.setOnSpeedDecreaseCallback((ev)=>{
+    const speedIndex = speeds.indexOf(speed);
+    if(speedIndex >= 0){
+        speed = speeds[speedIndex-1];
+      
+        controlBar.setSpeed(speed)
+    }
+})
+
+controlBar.setSpeed(speed)
+
 
 function animate(justOnce) {
 
@@ -186,10 +216,10 @@ function animate(justOnce) {
 
     function frame(time) {
         if (!start) start = time;
-        const delta = time-start 
+        const delta = (time-start)*speed 
         timeElapsed+=delta;
-        const phase = timeElapsed / duration;
-        console.log(timeElapsed / 1000)
+        phase = timeElapsed / duration;
+       
         const alongRoute = along(
             flightLine,
             routeDistance * phase
@@ -213,13 +243,13 @@ function animate(justOnce) {
             ), { units: 'meters' }
         )
         const segmentPhase = segmentDistance / segmentLength;
-        div.innerHTML = `
-                    Segment index ${segmentLineIndex}
-                    <pre>
-                    ${JSON.stringify(flightLinesCollection.features[segmentLineIndex].properties, null, 4)}
-                    </pre>
-                    <br/>Segment length: ${segmentLength}
-                    <br/>Segment phase:${segmentPhase}`;
+        //  div.innerHTML = `
+        //             Segment index ${segmentLineIndex}
+        //             <pre>
+        //             ${JSON.stringify(flightLinesCollection.features[segmentLineIndex].properties, null, 4)}
+        //             </pre>
+        //             <br/>Segment length: ${segmentLength}
+        //             <br/>Segment phase:${segmentPhase}`;
 
 
         camera.position = mapboxgl.MercatorCoordinate.fromLngLat(
@@ -238,9 +268,10 @@ function animate(justOnce) {
         camera.setPitchBearing(80, bearing)
 
         map.setFreeCameraOptions(camera);
-        controlBar.setProgress(phase*100);
+        
         start = time;
         if(!justOnce && !controlBar.isPlaying) return;
+        controlBar.setProgress(phase*100);
         if(phase>= 1) return;
         !justOnce  && window.requestAnimationFrame(frame);
         
