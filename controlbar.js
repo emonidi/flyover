@@ -40,12 +40,24 @@ export default class ControlBar {
         callback();
     }
 
+
+
     setOnSpeedIncreaseCallback(callback){
-        this.increaseButton.addEventListener('click', callback);
+        this.speedLabel.addEventListener('click',(ev)=>{
+            callback(ev);
+            this.slider.layout();
+        })
+        this.increaseButton.addEventListener('click', (ev)=>{
+            callback(ev);
+            this.slider.layout();
+        });
     }
 
     setOnSpeedDecreaseCallback(callback){
-        this.decreaseButton.addEventListener('click', callback);
+        this.decreaseButton.addEventListener('click', (ev)=>{
+            callback(ev);
+            this.slider.layout();
+        })
     }
 
     setSpeed(speed){
