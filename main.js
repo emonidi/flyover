@@ -1,48 +1,68 @@
 import './style.scss';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import mapboxgl from 'mapbox-gl';
-import { path } from './flight.json';
+import path from './sample.gpx.js';
+import togeojson from '@mapbox/togeojson';
 import { geoInterpolate } from 'd3-geo';
 import { interpolateNumber } from 'd3-interpolate';
-import { interpolate, nearestPointOnLine, along, point, lineString, featureEach, length, booleanEqual, booleanPointOnLine, multiLineString, featureCollection, lineSlice } from '@turf/turf';
+import { 
+    nearestPointOnLine, 
+    along, 
+    point, 
+    lineString, 
+    length, 
+    featureCollection, 
+    lineSlice, 
+    bearing
+} from '@turf/turf';
 import ControlBar from './controlbar';
 
 
 if (import.meta.hot) {
     import.meta.hot.accept((newModule) => {
         console.log('updated: count is now ', newModule.count)
+        window.location.reload();
     })
 }
 
-
-
+const gpx2geojson = togeojson.gpx(new DOMParser().parseFromString(path, 'text/xml'));
 const controlBar = new ControlBar(document.getElementById('controlbar'));
 
 
 const convertPathToGeoJson = (path) => {
+   
     const geoJson = {
         "type": "FeatureCollection",
         "features": []
     }
-    path.forEach(point => {
+
+    path.features[0].geometry.coordinates.forEach((point, index) => {
+       
         geoJson.features.push({
             "type": "Feature",
             "geometry": {
                 "type": "Point",
-                "coordinates": [point[2], point[1]]
+                "coordinates": [point[0], point[1]]
             },
             properties: {
-                time: point[0],
-                baro_altitude: point[3],
-                true_track: point[4],
-                on_ground: point[5],
+                time:Date.parse(path.features[0].properties.coordTimes[index]),
+                baro_altitude: point[2],
+                true_track: bearing(
+                    [point[0], point[1]],
+                    [
+                        path.features[0].geometry.coordinates[index + 1] ? path.features[0].geometry.coordinates[index + 1][0] : point[0],
+                        path.features[0].geometry.coordinates[index + 1] ? path.features[0].geometry.coordinates[index + 1][1] : point[1]
+                    ]                
+                   
+                )
             }
         })
     })
     return geoJson
 }
 
-const flight = convertPathToGeoJson(path);
+const flight = convertPathToGeoJson(gpx2geojson);
+
 
 const flightLine = lineString(flight.features.map(p => p.geometry.coordinates));
 const flightLinesCollection = featureCollection(flight.features.map((p, index) => {
@@ -77,7 +97,7 @@ map.on('load', () => {
         'tileSize': 256,
         'maxzoom': 14
     });
-    map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1.3 });
+    map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': .95 });
     map.addLayer({
         'id': 'sky',
         'type': 'sky',
@@ -138,44 +158,47 @@ document.getElementById('map').addEventListener('click', () => {
 animate(true);
 
 
-const totalDuration = (path[path.length-1][0] - path[0][0])*1000;
-
-
-const speeds = [1,2,4,8,12,24,36,48]
+const totalDuration = (flight.features[flight.features.length-1].properties.time - flight.features[0].properties.time);
+const speeds = [1,2,4,8,16,32,64,128, 256, 512, 1024, 2048]
 let speed = speeds[0];
 
 let timeElapsed = 0;
-let duration = totalDuration/speed;
+let duration = totalDuration / speed;
 
 let phase = 0;
 
-controlBar.setOnCliderChangeCallback((value)=>{
-    timeElapsed = duration/100*value;
-    !controlBar.isPlaying && animate(true); 
+controlBar.setOnCliderChangeCallback((value) => {
+    timeElapsed = duration / 100 * value;
+    !controlBar.isPlaying && animate(true);
 })
 
 const playButton = document.getElementById('play');
 
 playButton.addEventListener('click', () => {
+  
     controlBar.togglePlay();
     document.querySelectorAll('.mdc-icon-button__icon').forEach(el => el.classList.toggle('mdc-icon-button__icon--on'));
-    animate();  
+    if(phase && phase >= 1){
+        phase = 0;
+        timeElapsed = 0;
+    }
+    animate();
 })
 
-controlBar.setOnSpeedIncreaseCallback((ev)=>{
+controlBar.setOnSpeedIncreaseCallback((ev) => {
     const speedIndex = speeds.indexOf(speed);
-    if(speedIndex < speeds.length-1){
-        speed = speeds[speedIndex+1];
-      
+    if (speedIndex < speeds.length - 1) {
+        speed = speeds[speedIndex + 1];
+
         controlBar.setSpeed(speed)
     }
 })
 
-controlBar.setOnSpeedDecreaseCallback((ev)=>{
+controlBar.setOnSpeedDecreaseCallback((ev) => {
     const speedIndex = speeds.indexOf(speed);
-    if(speedIndex >= 0){
-        speed = speeds[speedIndex-1];
-      
+    if (speedIndex >= 0) {
+        speed = speeds[speedIndex - 1];
+
         controlBar.setSpeed(speed)
     }
 })
@@ -190,15 +213,15 @@ function animate(justOnce) {
 
     function frame(time) {
         if (!start) start = time;
-        const delta = (time-start)*speed 
-        timeElapsed+=delta;
+        const delta = (time - start) * speed
+        timeElapsed += delta;
         phase = timeElapsed / duration;
-       
+
         const alongRoute = along(
             flightLine,
             routeDistance * phase
         );
-
+       
 
         const segmentLine = flightLinesCollection.features.map((f, i) => {
             const res = nearestPointOnLine(f, alongRoute, { units: 'meters' });
@@ -217,14 +240,7 @@ function animate(justOnce) {
             ), { units: 'meters' }
         )
         const segmentPhase = segmentDistance / segmentLength;
-        //  div.innerHTML = `
-        //             Segment index ${segmentLineIndex}
-        //             <pre>
-        //             ${JSON.stringify(flightLinesCollection.features[segmentLineIndex].properties, null, 4)}
-        //             </pre>
-        //             <br/>Segment length: ${segmentLength}
-        //             <br/>Segment phase:${segmentPhase}`;
-
+      
 
         camera.position = mapboxgl.MercatorCoordinate.fromLngLat(
             {
@@ -239,16 +255,21 @@ function animate(justOnce) {
         const bearing = interpolateNumber(
             flightLinesCollection.features[segmentLineIndex].properties.bearing[0],
             flightLinesCollection.features[segmentLineIndex].properties.bearing[1])(segmentPhase)
+       
         camera.setPitchBearing(80, bearing)
 
         map.setFreeCameraOptions(camera);
-        
+
         start = time;
-        if(!justOnce && !controlBar.isPlaying) return;
-        controlBar.setProgress(phase*100);
-        if(phase>= 1) return;
-        !justOnce  && window.requestAnimationFrame(frame);
-        
+        if (!justOnce && !controlBar.isPlaying) return;
+        controlBar.setProgress(phase * 100);
+        if (phase >= 1) {
+            document.querySelectorAll('.mdc-icon-button__icon').forEach(el => el.classList.toggle('mdc-icon-button__icon--on'));
+            controlBar.togglePlay();
+            return;
+        };
+        !justOnce && window.requestAnimationFrame(frame);
+
     }
 
     window.requestAnimationFrame(frame);

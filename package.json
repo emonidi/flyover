@@ -12,6 +12,7 @@
     "vite": "^2.8.0"
   },
   "dependencies": {
+    "@mapbox/togeojson": "^0.16.0",
     "@material/button": "^13.0.0",
     "@material/mwc-button": "^0.25.3",
     "@material/slider": "^13.0.0",
