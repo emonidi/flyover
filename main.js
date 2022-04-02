@@ -100,14 +100,15 @@ map.on('load', () => {
 
     map.flyTo({
         center: [...flight.features[1].geometry.coordinates],
-        zoom: 18,
-        pitch: 90,
-        bearing: flightLinesCollection.features[1].properties.bearing[0],
-        essential: true
+        zoom: 16.5,
+        pitch: 75,
+        bearing: flightLinesCollection.features[0].properties.bearing[0],
+        essential: true,
+        duration:2000
     });
    
-debugger;
-   console.log(flight.features)
+    map.once('moveend',()=>animate(true))
+  
 
     controlBar.setProgress(0)
 
@@ -184,7 +185,7 @@ debugger;
                 terrain:true
             });
             var options = {
-                obj: 'models/a320.glb',
+                obj: 'assets/models/a320.glb',
                 type: 'gltf', //type enum, glb format is
                 scale: 2, //20x the original size
                 units: 'meters', //everything will be converted to meters in setCoords method				
@@ -316,14 +317,14 @@ function animate(justOnce) {
             flightLinesCollection.features[segmentLineIndex].properties.bearing[1])(segmentPhase)
         
         
-        const cameraPoint = destination(alongRoute,-650, bearing, { units: 'meters',properties:{elevation:elevation}}); 
+        const cameraPoint = destination(alongRoute,-600, bearing, { units: 'meters',properties:{elevation:elevation}}); 
         
         camera.position = mapboxgl.MercatorCoordinate.fromLngLat(
             {
                 lng: cameraPoint.geometry.coordinates[0],
                 lat: cameraPoint.geometry.coordinates[1]
             },
-            elevation+200
+            elevation+250
         );
 
 
@@ -331,8 +332,9 @@ function animate(justOnce) {
         // camera.lookAtPoint(alongRoute.geometry.coordinates);
         
         camera.setPitchBearing(75, bearing)
-        console.log(camera);
        
+        console.log(camera);
+        
         map.setFreeCameraOptions(camera);
 
         window.airplane.setCoords([alongRoute.geometry.coordinates[0], alongRoute.geometry.coordinates[1], elevation])
