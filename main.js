@@ -80,16 +80,28 @@ flightLinesCollection.features = flightLinesCollection.features.filter(p => p !=
 mapboxgl.accessToken = 'pk.eyJ1IjoiZW1vbmlkaSIsImEiOiJjajdqd3pvOHYwaThqMzJxbjYyam1lanI4In0.V_4P8bJqzHxM2W9APpkf1w';
 const map = new mapboxgl.Map({
     container: 'map',
-
+    pitch:90,
     center: [...flight.features[1].geometry.coordinates],
-
+    zoom:8,
     style: 'mapbox://styles/mapbox/satellite-v9',
-    interactive: true
+    interactive: true,
+    trackResize:true
 });
 
 const camera = map.getFreeCameraOptions();
 
 map.on('load', () => {
+
+    map.flyTo({
+        center:[...flight.features[1].geometry.coordinates],
+        zoom:18,
+        pitch:90,
+        bearing:flightLinesCollection.features[1].properties.bearing[0],
+        essential: true
+    });
+
+    
+    controlBar.setProgress(0)
 
     map.addSource('mapbox-dem', {
         'type': 'raster-dem',
@@ -151,12 +163,6 @@ map.on('load', () => {
 
 });
 
-document.getElementById('map').addEventListener('click', () => {
-    animate()
-});
-
-animate(true);
-
 
 const totalDuration = (flight.features[flight.features.length-1].properties.time - flight.features[0].properties.time);
 const speeds = [1,2,4,8,16,32,64,128, 256, 512, 1024, 2048]
@@ -184,6 +190,7 @@ playButton.addEventListener('click', () => {
     }
     animate();
 })
+
 
 controlBar.setOnSpeedIncreaseCallback((ev) => {
     const speedIndex = speeds.indexOf(speed);
@@ -241,15 +248,18 @@ function animate(justOnce) {
         )
         const segmentPhase = segmentDistance / segmentLength;
       
+        let elevation =   interpolateNumber(
+            flightLinesCollection.features[segmentLineIndex].properties.altitude[0],
+            flightLinesCollection.features[segmentLineIndex].properties.altitude[1])(segmentPhase)
 
+       
+       
         camera.position = mapboxgl.MercatorCoordinate.fromLngLat(
             {
                 lng: alongRoute.geometry.coordinates[0],
                 lat: alongRoute.geometry.coordinates[1]
             },
-            interpolateNumber(
-                flightLinesCollection.features[segmentLineIndex].properties.altitude[0],
-                flightLinesCollection.features[segmentLineIndex].properties.altitude[1])(segmentPhase)
+            elevation
         );
 
         const bearing = interpolateNumber(
