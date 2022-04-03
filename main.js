@@ -6,7 +6,7 @@ import togeojson from '@mapbox/togeojson';
 import { geoInterpolate } from 'd3-geo';
 import { interpolateNumber } from 'd3-interpolate';
 import { Threebox } from 'threebox-plugin';
-
+import { GUI } from 'https://threejs.org/examples/jsm/libs/lil-gui.module.min.js'
 import {
     nearestPointOnLine,
     along,
@@ -46,7 +46,7 @@ const convertPathToGeoJson = (path) => {
             "type": "Feature",
             "geometry": {
                 "type": "Point",
-                "coordinates": [point[0], point[1],point[2]]
+                "coordinates": [point[0], point[1], point[2]]
             },
             properties: {
                 time: Date.parse(path.features[0].properties.coordTimes[index]),
@@ -66,7 +66,7 @@ const convertPathToGeoJson = (path) => {
 }
 
 const flight = convertPathToGeoJson(gpx2geojson);
-
+let gui;
 
 const flightLine = lineString(flight.features.map(p => p.geometry.coordinates));
 const flightLinesCollection = featureCollection(flight.features.map((p, index) => {
@@ -87,38 +87,82 @@ const map = new mapboxgl.Map({
     pitch: 90,
     center: [...flight.features[1].geometry.coordinates],
     zoom: 8,
-    style: 'mapbox://styles/mapbox/satellite-v9',
+    style: {
+        version: 8,
+        sources: {
+            'map-tiler': {
+                type: 'raster',
+                // tiles:['https://api.maptiler.com/tiles/satellite-v2/{z}/{x}/{y}.jpg?key=<your-key>'], //maptiler
+                //tiles:['https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}.jpg90?access_token=pk.eyJ1IjoiZW1vbmlkaSIsImEiOiJjajdqd3pvOHYwaThqMzJxbjYyam1lanI4In0.V_4P8bJqzHxM2W9APpkf1w'],
+                tiles: ['https://2.aerial.maps.ls.hereapi.com/maptile/2.1/maptile/newest/satellite.day/{z}/{x}/{y}/512/png8?apiKey=Nt-jchpJ9cxObvHSsTKPCsWMsrXWIELcFU8nAQQPsD0'], //arcgis
+                tileSize: 512,
+            }
+        },
+        layers: [
+            {
+                id: 'map-tiler',
+                source: 'map-tiler',
+                type: 'raster'
+            }
+        ]
+    },
     interactive: true,
     trackResize: true
 });
 
 window.airplane;
 
+let animationOptions = {
+    distanceFromPlane: -500,
+    elevationFromPlane: 125,
+    freeView: false,
+    mapPitch: 70,
+}
+
 const camera = map.getFreeCameraOptions();
+controlBar.setProgress(0)
+map.on('load', async () => {
 
-map.on('load', () => {
-
+    await map.once('idle');
     map.flyTo({
         center: [...flight.features[1].geometry.coordinates],
         zoom: 16.5,
         pitch: 75,
         bearing: flightLinesCollection.features[0].properties.bearing[0],
         essential: true,
-        duration:2000
+        duration: 2000
     });
-   
-    map.once('moveend',()=>animate(true))
-  
 
-    controlBar.setProgress(0)
+    map.once('idle', () => animate(true))
+
+    gui = new GUI();
+
+    gui.add(animationOptions, 'distanceFromPlane', -1000, 1000).name("Distance from plane").onChange((ev) => {
+        animationOptions.distanceFromPlane = ev
+        animate(true)
+    })
+
+    gui.add(animationOptions, 'elevationFromPlane', -200, 200).name("Elevation from plane").onChange((ev) => {
+        animationOptions.elevationFromPlane = ev
+        animate(true)
+    })
+
+    gui.add(animationOptions, 'mapPitch', -0, 89).name("Map pitch").onChange((ev) => {
+        animationOptions.mapPitch = ev
+        animate(true)
+    })
+
+    gui.add(animationOptions, 'freeView').name("Free view").onChange((ev) => {
+        animationOptions.freeView = ev
+    })
 
     map.addSource('mapbox-dem', {
         'type': 'raster-dem',
         'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
-        'tileSize': 256,
+        'tileSize': 512,
         'maxzoom': 14
     });
-    map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': .95 });
+    map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1 });
     map.addLayer({
         'id': 'sky-layer',
         'type': 'sky',
@@ -170,34 +214,34 @@ map.on('load', () => {
         }
     })
 
-     map.addLayer({
+    map.addLayer({
         'id': 'airplane',
         'type': 'custom',
         'renderingMode': '3d',
         onAdd: (map, gl) => {
 
-            window.tb = new Threebox(map,map.getCanvas().getContext('webgl'), {
+            window.tb = new Threebox(map, map.getCanvas().getContext('webgl'), {
                 realSunlight: true,
                 defaultLights: true,
                 passiveRendering: true,
-               
-                sky:true,
-                terrain:true
+                preserveDrawingBuffer: true,
+                sky: true,
+                terrain: true
             });
             var options = {
                 obj: 'assets/models/a320.glb',
                 type: 'gltf', //type enum, glb format is
                 scale: 2, //20x the original size
                 units: 'meters', //everything will be converted to meters in setCoords method				
-                rotation: { x: 0, y:0, z:0 }, //default rotation
+                rotation: { x: 0, y: 0, z: 0 }, //default rotation
                 adjustment: { x: 0, y: 0, z: 0 }, // model center is displaced
                 feature: flight.features[0], // a valid GeoJson feature
                 anchor: 'center',
-                // normalize:true,
-                clone:false
+                fixedZoom: 16.5,
+                clone: false
             }
-            
-            window.tb.add(window.tb.line({geometry:flightLine.geometry.coordinates, color:"red",width:10}))
+
+            window.tb.add(window.tb.line({ geometry: flightLine.geometry.coordinates, color: "red", width: 5 }))
 
             window.tb.loadObj(options, (model, err) => {
                 model.traverse(function (object) {
@@ -205,7 +249,7 @@ map.on('load', () => {
                 });
                 model.selected = true;
                 window.airplane = model.setCoords([...flight.features[0].geometry.coordinates, flight.features[0].properties.baro_altitude]);
-                
+
                 window.tb.add(window.airplane);
             })
         },
@@ -265,9 +309,11 @@ controlBar.setOnSpeedDecreaseCallback((ev) => {
     }
 })
 
-let distanceFromPlane = -10;
+
 
 controlBar.setSpeed(speed)
+
+
 
 function animate(justOnce) {
 
@@ -284,7 +330,7 @@ function animate(justOnce) {
         const alongRoute = along(
             flightLine,
             routeDistance * phase,
-            {units:'meters'}
+            { units: 'meters' }
         );
 
 
@@ -315,36 +361,33 @@ function animate(justOnce) {
         const bearing = interpolateNumber(
             flightLinesCollection.features[segmentLineIndex].properties.bearing[0],
             flightLinesCollection.features[segmentLineIndex].properties.bearing[1])(segmentPhase)
-        
-        
-        const cameraPoint = destination(alongRoute,-600, bearing, { units: 'meters',properties:{elevation:elevation}}); 
-        
-        camera.position = mapboxgl.MercatorCoordinate.fromLngLat(
-            {
-                lng: cameraPoint.geometry.coordinates[0],
-                lat: cameraPoint.geometry.coordinates[1]
-            },
-            elevation+250
-        );
 
 
-     
-        // camera.lookAtPoint(alongRoute.geometry.coordinates);
-        
-        camera.setPitchBearing(75, bearing)
-       
-        console.log(camera);
-        
-        map.setFreeCameraOptions(camera);
+        if (!animationOptions.freeView) {
+            const cameraPoint = destination(alongRoute, animationOptions.distanceFromPlane, bearing, { units: 'meters', properties: { elevation: elevation } });
+
+            camera.position = mapboxgl.MercatorCoordinate.fromLngLat(
+                {
+                    lng: cameraPoint.geometry.coordinates[0],
+                    lat: cameraPoint.geometry.coordinates[1]
+                },
+                elevation + animationOptions.elevationFromPlane
+            );
+
+            camera.setPitchBearing(animationOptions.mapPitch, bearing)
+            map.setFreeCameraOptions(camera);
+            
+        }
+        camera.lookAtPoint(alongRoute.geometry.coordinates);
 
         window.airplane.setCoords([alongRoute.geometry.coordinates[0], alongRoute.geometry.coordinates[1], elevation])
-       
-        window.airplane.setRotation({x:0,y:0,z:180-bearing})
-       
-      
-       
+
+        window.airplane.setRotation({ x: 0, y: 0, z: 180 - bearing })
+        window.airplane.setObjectScale(map.transform.scale)
+        map.triggerRepaint();
+
         start = time;
-       
+
         if (!justOnce && !controlBar.isPlaying) return;
         controlBar.setProgress(phase * 100);
         if (phase >= 1) {
