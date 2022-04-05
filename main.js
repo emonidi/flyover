@@ -160,7 +160,7 @@ map.on('load', async () => {
 
     map.once('idle', () => animate(true))
 
-    // setGui();
+    setGui();
 
     map.addSource('mapbox-dem', {
         'type': 'raster-dem',
