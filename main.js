@@ -16,7 +16,8 @@ import {
     featureCollection,
     lineSlice,
     bearing,
-    destination
+    destination,
+    rhumbDestination
 } from '@turf/turf';
 import ControlBar from './controlbar';
 
@@ -116,25 +117,11 @@ let animationOptions = {
     distanceFromPlane: -500,
     elevationFromPlane: 125,
     freeView: false,
+    cameraAngle:0,
     mapPitch: 70,
 }
 
-const camera = map.getFreeCameraOptions();
-controlBar.setProgress(0)
-map.on('load', async () => {
-
-    await map.once('idle');
-    map.flyTo({
-        center: [...flight.features[1].geometry.coordinates],
-        zoom: 16.5,
-        pitch: 75,
-        bearing: flightLinesCollection.features[0].properties.bearing[0],
-        essential: true,
-        duration: 2000
-    });
-
-    map.once('idle', () => animate(true))
-
+const setGui = () => {
     gui = new GUI();
 
     gui.add(animationOptions, 'distanceFromPlane', -1000, 1000).name("Distance from plane").onChange((ev) => {
@@ -155,6 +142,25 @@ map.on('load', async () => {
     gui.add(animationOptions, 'freeView').name("Free view").onChange((ev) => {
         animationOptions.freeView = ev
     })
+}
+
+const camera = map.getFreeCameraOptions();
+controlBar.setProgress(0)
+map.on('load', async () => {
+
+    await map.once('idle');
+    map.flyTo({
+        center: [...flight.features[1].geometry.coordinates],
+        zoom: 16.5,
+        pitch: 75,
+        bearing: flightLinesCollection.features[0].properties.bearing[0],
+        essential: true,
+        duration: 2000
+    });
+
+    map.once('idle', () => animate(true))
+
+    // setGui();
 
     map.addSource('mapbox-dem', {
         'type': 'raster-dem',
@@ -309,6 +315,40 @@ controlBar.setOnSpeedDecreaseCallback((ev) => {
     }
 })
 
+map.on('wheel',(ev)=>{
+    if(ev.originalEvent.ctrlKey){   
+        animationOptions.elevationFromPlane+=ev.originalEvent.deltaY/10;
+    }else{
+        animationOptions.distanceFromPlane+= ev.originalEvent.deltaY/10;
+    }
+})
+let isDragging = false;
+
+map.on('mousedown',(ev)=>{
+    isDragging = true;
+})
+
+map.on('mouseup',(ev)=>{
+    isDragging = false;
+})
+
+map.on('mousemove',(ev)=>{
+   ;
+
+  
+    if(isDragging) {
+        const direction = ev.originalEvent.movementY > 0 ? 'up' : 'down';
+        console.log(ev.originalEvent.movementY)
+        if(animationOptions.mapPitch >= 85 && direction === 'up'){
+            animationOptions.mapPitch = 85;
+        }else if(animationOptions.mapPitch <= 0 && direction === 'down'){
+            animationOptions.mapPitch = 0;
+        }else{
+            animationOptions.mapPitch+= ev.originalEvent.movementY/10;
+        }
+        animationOptions.cameraAngle-= ev.originalEvent.movementX/10;
+    }
+})
 
 
 controlBar.setSpeed(speed)
@@ -364,21 +404,22 @@ function animate(justOnce) {
 
 
         if (!animationOptions.freeView) {
-            const cameraPoint = destination(alongRoute, animationOptions.distanceFromPlane, bearing, { units: 'meters', properties: { elevation: elevation } });
+            const cameraPoint = rhumbDestination(alongRoute, animationOptions.distanceFromPlane, bearing, { units: 'meters', properties: { elevation: elevation } });
 
             camera.position = mapboxgl.MercatorCoordinate.fromLngLat(
                 {
                     lng: cameraPoint.geometry.coordinates[0],
                     lat: cameraPoint.geometry.coordinates[1]
                 },
-                elevation + animationOptions.elevationFromPlane
+                cameraPoint.properties.elevation+animationOptions.elevationFromPlane
             );
 
-            camera.setPitchBearing(animationOptions.mapPitch, bearing)
+            camera.setPitchBearing(animationOptions.mapPitch, bearing+animationOptions.cameraAngle)
+           
             map.setFreeCameraOptions(camera);
             
         }
-        camera.lookAtPoint(alongRoute.geometry.coordinates);
+      
 
         window.airplane.setCoords([alongRoute.geometry.coordinates[0], alongRoute.geometry.coordinates[1], elevation])
 
