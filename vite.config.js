@@ -1,6 +1,7 @@
 import copy from 'rollup-plugin-copy'
 
 export default {
+  
     server:{
         hmr:true,
         watch:true,
