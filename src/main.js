@@ -46,13 +46,15 @@ flightLinesCollection.features = flightLinesCollection.features.filter(p => p !=
 let gui;
 let timeElapsed = 0;
 
-const {map, camera} = new MapController({
+const mapcontroller = new MapController({
     flight,
     flightLine,
     flightLinesCollection,
     accessToken: Config.mapboxAccessToken,
     animate
-})
+});
+
+const {map, camera} = mapcontroller;
 
 
 
@@ -98,6 +100,7 @@ controlBar.setOnPlayButtonClickCallback(() => {
         timeElapsed = 0;
     }
     animate();
+   
 })
 
 map.on('wheel',(ev)=>{
@@ -174,6 +177,15 @@ function animate(justOnce) {
         const bearing = interpolateNumber(
             flightLinesCollection.features[segmentLineIndex].properties.bearing[0],
             flightLinesCollection.features[segmentLineIndex].properties.bearing[1])(segmentPhase)
+
+        
+        const interpolatedTimeStamp = interpolateNumber(
+            flightLinesCollection.features[segmentLineIndex].properties.timestamp[0],
+            flightLinesCollection.features[segmentLineIndex].properties.timestamp[1])(segmentPhase)
+
+       
+
+        mapcontroller.setSkyColor(interpolatedTimeStamp,alongRoute.geometry.coordinates)
 
 
         if (!mouseControl.state.freeView) {
