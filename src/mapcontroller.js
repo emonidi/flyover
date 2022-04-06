@@ -1,19 +1,24 @@
 import mapboxgl from 'mapbox-gl';
 import { Threebox } from 'threebox-plugin';
+import { getPosition, getTimes } from 'suncalc';
 export default class MapController {
-    
-    
-    constructor({flight, flightLine,animate, accessToken,flightLinesCollection}){
+
+
+    constructor({ flight, flightLine, animate, accessToken, flightLinesCollection }) {
         mapboxgl.accessToken = accessToken;
         this.animate = animate;
         this.map = this.init(flight);
         this.camera = this.map.getFreeCameraOptions();
-        this.map.on('load',()=>{
-            this.initializeScene(flightLine, flight,flightLinesCollection)
+        this.flightLinesCollection = flightLinesCollection;
+        this.map.on('load', () => {
+            this.initializeScene(flightLine, flight, flightLinesCollection);
         })
+       
+
+
     }
 
-    init(flight){
+    init(flight) {
         const map = new mapboxgl.Map({
             container: 'map',
             pitch: 90,
@@ -45,8 +50,8 @@ export default class MapController {
         return map;
     }
 
-    initializeScene(flightLine,flight,flightLinesCollection){
-        const {map} = this;
+    initializeScene(flightLine, flight, flightLinesCollection) {
+        const { map } = this;
         map.flyTo({
             center: [...flight.features[1].geometry.coordinates],
             zoom: 16.5,
@@ -55,11 +60,13 @@ export default class MapController {
             essential: true,
             duration: 2000
         });
-    
-        map.once('moveend', () => this.animate(true))
-    
-        
-    
+
+        map.once('moveend', () => {
+            this.animate(true)
+        })
+
+
+
         map.addSource('mapbox-dem', {
             'type': 'raster-dem',
             'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
@@ -71,59 +78,41 @@ export default class MapController {
             'id': 'sky-layer',
             'type': 'sky',
             'paint': {
-                // set up the sky layer to use a color gradient
-                'sky-type': 'gradient',
-                // the sky will be lightest in the center and get darker moving radially outward
-                // this simulates the look of the sun just below the horizon
-                'sky-gradient': [
-                    'interpolate',
-                    ['linear'],
-                    ['sky-radial-progress'],
-                    0.8,
-                    'rgba(135, 206, 235, 1.0)',
-                    1,
-                    'rgba(0,0,0,0.1)'
-                ],
-                'sky-gradient-center': [0, 0],
-                'sky-gradient-radius': 90,
-                'sky-opacity': [
-                    'interpolate',
-                    ['exponential', 0.1],
-                    ['zoom'],
-                    5,
-                    0,
-                    22,
-                    1
-                ]
+                // set up the sky layer for atmospheric scattering
+                'sky-type': 'atmosphere',
+                // explicitly set the position of the sun rather than allowing the sun to be attached to the main light source
+                'sky-atmosphere-sun':this.getSunPosition(this.flightLinesCollection.features[0].properties.timestamp[0], this.flightLinesCollection.features[0].geometry.coordinates[0]),
+                // set the intensity of the sun as a light source (0-100 with higher values corresponding to brighter skies)
+                'sky-atmosphere-sun-intensity': 5
             }
         });
-    
-    
+
+       
         map.addSource('flightLine', {
             type: 'geojson',
             data: flightLine
         })
-    
-        map.addLayer({
-            'id': 'flightLine',
-            'type': 'line',
-            'source': 'flightLine',
-            'layout': {
-                'line-join': 'round',
-                'line-cap': 'round'
-            },
-            'paint': {
-                'line-color': '#888',
-                'line-width': 8
-            }
-        })
-    
+
+        // map.addLayer({
+        //     'id': 'flightLine',
+        //     'type': 'line',
+        //     'source': 'flightLine',
+        //     'layout': {
+        //         'line-join': 'round',
+        //         'line-cap': 'round'
+        //     },
+        //     'paint': {
+        //         'line-color': '#888',
+        //         'line-width': 8
+        //     }
+        // })
+
         map.addLayer({
             'id': 'airplane',
             'type': 'custom',
             'renderingMode': '3d',
             onAdd: (map, gl) => {
-    
+
                 window.tb = new Threebox(map, map.getCanvas().getContext('webgl'), {
                     realSunlight: true,
                     defaultLights: true,
@@ -144,23 +133,39 @@ export default class MapController {
                     fixedZoom: 16.5,
                     clone: false
                 }
-    
+
                 window.tb.add(window.tb.line({ geometry: flightLine.geometry.coordinates, color: "red", width: 5 }))
-    
+
                 window.tb.loadObj(options, (model, err) => {
                     model.traverse(function (object) {
                         object.frustumCulled = false;
                     });
                     model.selected = true;
                     window.airplane = model.setCoords([...flight.features[0].geometry.coordinates, flight.features[0].properties.baro_altitude]);
-    
+
                     window.tb.add(window.airplane);
                 })
             },
-    
+
             render: (gl, matrix) => {
                 window.tb && window.tb.update();
             }
-        })    
+        })
+
+        this.setSkyColor(this.flightLinesCollection.features[1].properties.timestamp[1], this.flightLinesCollection.features[1].geometry.coordinates[1])
+    }
+
+    
+   getSunPosition(timestamp, position) {
+  
+    const sunPosition = getPosition(timestamp || Date.now(), position[1], position[0]);
+    const sunAzimuth = 180 + (sunPosition.azimuth * 180) / Math.PI;
+    const sunAltitude = 90 - (sunPosition.altitude * 180) / Math.PI;
+
+    return  [sunAzimuth, sunAltitude]
+   }
+
+    setSkyColor(timestamp, position) {
+        this.map.setPaintProperty('sky-layer', 'sky-atmosphere-sun', this.getSunPosition(timestamp, position));
     }
 }

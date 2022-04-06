@@ -38,6 +38,7 @@ export const createFlightLinesCollection = (flight) => {
             return lineString([p.geometry.coordinates, flight.features[index + 1].geometry.coordinates], {
                 altitude: [p.properties.baro_altitude, flight.features[index + 1].properties.baro_altitude],
                 bearing: [p.properties.true_track, flight.features[index + 1].properties.true_track],
+                timestamp: [p.properties.time, flight.features[index + 1].properties.time]
             })
         }
     })
