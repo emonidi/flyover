@@ -134,6 +134,9 @@ map.on('mousemove',(ev)=>{
     }
 })
 
+let currentSegmentIndex  = -1;
+let segmentLength, elevationInterpolator, bearingInterpolator, distanceInterpolator, timestampInterpolator;
+
 function animate(justOnce) {
 
     let start = 0;
@@ -159,29 +162,36 @@ function animate(justOnce) {
 
         const segmentLineIndex = segmentLine[0].properties.lineIndex;
 
-        const segmentLength = length(flightLinesCollection.features[segmentLineIndex], { units: 'meters' })
+        if(segmentLineIndex !== currentSegmentIndex){
+            currentSegmentIndex = segmentLineIndex;
+            segmentLength = length(flightLinesCollection.features[segmentLineIndex], { units: 'meters' })
+            elevationInterpolator = interpolateNumber(
+                flightLinesCollection.features[segmentLineIndex].properties.altitude[0],
+                flightLinesCollection.features[segmentLineIndex].properties.altitude[1])
+
+            bearingInterpolator =  interpolateNumber(
+                flightLinesCollection.features[segmentLineIndex].properties.bearing[0],
+                flightLinesCollection.features[segmentLineIndex].properties.bearing[1]);
+            
+            timestampInterpolator = interpolateNumber(
+                flightLinesCollection.features[segmentLineIndex].properties.timestamp[0],
+                flightLinesCollection.features[segmentLineIndex].properties.timestamp[1])
+        }
         const segmentDistance = length(
             lineSlice(
                 point(flightLinesCollection.features[segmentLineIndex].geometry.coordinates[0]),
                 alongRoute,
                 flightLinesCollection.features[segmentLineIndex]
-            ), { units: 'meters' }
-        )
+            ), { units: 'meters' })
+
+
         const segmentPhase = segmentDistance / segmentLength;
 
-        let elevation = interpolateNumber(
-            flightLinesCollection.features[segmentLineIndex].properties.altitude[0],
-            flightLinesCollection.features[segmentLineIndex].properties.altitude[1])(segmentPhase)
-
-
-        const bearing = interpolateNumber(
-            flightLinesCollection.features[segmentLineIndex].properties.bearing[0],
-            flightLinesCollection.features[segmentLineIndex].properties.bearing[1])(segmentPhase)
+        const elevation = elevationInterpolator(segmentPhase);
+        const bearing = bearingInterpolator(segmentPhase)
 
         
-        const interpolatedTimeStamp = interpolateNumber(
-            flightLinesCollection.features[segmentLineIndex].properties.timestamp[0],
-            flightLinesCollection.features[segmentLineIndex].properties.timestamp[1])(segmentPhase)
+        const interpolatedTimeStamp = timestampInterpolator(segmentPhase)
 
        
 
@@ -210,7 +220,7 @@ function animate(justOnce) {
 
         window.airplane.setRotation({ x: 0, y: 0, z: 180 - bearing })
         window.airplane.setObjectScale(map.transform.scale)
-        map.triggerRepaint();
+     
 
         start = time;
 

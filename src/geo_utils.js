@@ -16,7 +16,7 @@ export const convertPathToGeoJson = (path) => {
                 "coordinates": [point[0], point[1], point[2]]
             },
             properties: {
-                time: Date.parse(path.features[0].properties.coordTimes[index]),
+                time: Date.parse(path.features[0].properties.coordTimes[index])+(60*60*1000*4),
                 baro_altitude: point[2],
                 true_track: bearing(
                     [point[0], point[1]],
