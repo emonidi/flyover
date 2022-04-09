@@ -15,7 +15,7 @@ export default class MapController {
             this.initializeScene(flightLine, flight, flightLinesCollection);
         })
        
-        this.sunAltitudeScale = scaleLinear([0,Math.PI/2],[0.5,1]);
+        this.sunAltitudeScale = scaleLinear([0,Math.PI/2],[0.4,1]);
        
     }
 
