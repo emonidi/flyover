@@ -1,6 +1,7 @@
 import mapboxgl from 'mapbox-gl';
 import { Threebox } from 'threebox-plugin';
 import { getPosition, getTimes } from 'suncalc';
+import {scaleLinear} from 'd3-scale';
 export default class MapController {
 
 
@@ -14,8 +15,8 @@ export default class MapController {
             this.initializeScene(flightLine, flight, flightLinesCollection);
         })
        
-
-
+        this.sunAltitudeScale = scaleLinear([0,Math.PI/2],[0.4,1]);
+       
     }
 
     init(flight) {
@@ -29,9 +30,10 @@ export default class MapController {
                 sources: {
                     'map-tiler': {
                         type: 'raster',
-                        // tiles:['https://api.maptiler.com/tiles/satellite-v2/{z}/{x}/{y}.jpg?key=<your-key>'], //maptiler
-                        //tiles:['https://api.mapbox.com/v4/mapbox.satellite/{z}/{x}/{y}.jpg90?access_token=pk.eyJ1IjoiZW1vbmlkaSIsImEiOiJjajdqd3pvOHYwaThqMzJxbjYyam1lanI4In0.V_4P8bJqzHxM2W9APpkf1w'],
-                        tiles: ['https://2.aerial.maps.ls.hereapi.com/maptile/2.1/maptile/newest/satellite.day/{z}/{x}/{y}/512/png8?apiKey=Nt-jchpJ9cxObvHSsTKPCsWMsrXWIELcFU8nAQQPsD0'], //arcgis
+                        // tiles:['https://api.maptiler.com/tiles/satellite-v2/{z}/{x}/{y}.jpg?key=e1RrPnLOPEw0LCkLeKYK'], //maptiler
+                        // tiles:['https://api.mapbox.com/styles/v1/mapbox/streets-v9/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoiZW1vbmlkaSIsImEiOiJjajdqd3pvOHYwaThqMzJxbjYyam1lanI4In0.V_4P8bJqzHxM2W9APpkf1w'],
+                        tiles: ['https://2.aerial.maps.ls.hereapi.com/maptile/2.1/maptile/newest/satellite.day/{z}/{x}/{y}/512/png?apiKey=Nt-jchpJ9cxObvHSsTKPCsWMsrXWIELcFU8nAQQPsD0'], //arcgis
+                       
                         tileSize: 512,
                     }
                 },
@@ -65,8 +67,7 @@ export default class MapController {
             this.animate(true)
         })
 
-
-
+     
         map.addSource('mapbox-dem', {
             'type': 'raster-dem',
             'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
@@ -81,7 +82,7 @@ export default class MapController {
                 // set up the sky layer for atmospheric scattering
                 'sky-type': 'atmosphere',
                 // explicitly set the position of the sun rather than allowing the sun to be attached to the main light source
-                'sky-atmosphere-sun':this.getSunPosition(this.flightLinesCollection.features[0].properties.timestamp[0], this.flightLinesCollection.features[0].geometry.coordinates[0]),
+                'sky-atmosphere-sun':[...this.getSunPosition(this.flightLinesCollection.features[0].properties.timestamp[0], this.flightLinesCollection.features[0].geometry.coordinates[0])].slice(0,2),
                 // set the intensity of the sun as a light source (0-100 with higher values corresponding to brighter skies)
                 'sky-atmosphere-sun-intensity': 5
             }
@@ -93,19 +94,19 @@ export default class MapController {
             data: flightLine
         })
 
-        // map.addLayer({
-        //     'id': 'flightLine',
-        //     'type': 'line',
-        //     'source': 'flightLine',
-        //     'layout': {
-        //         'line-join': 'round',
-        //         'line-cap': 'round'
-        //     },
-        //     'paint': {
-        //         'line-color': '#888',
-        //         'line-width': 8
-        //     }
-        // })
+        map.addLayer({
+            'id': 'flightLine',
+            'type': 'line',
+            'source': 'flightLine',
+            'layout': {
+                'line-join': 'round',
+                'line-cap': 'round'
+            },
+            'paint': {
+                'line-color': '#888',
+                'line-width': 8
+            }
+        })
 
         map.addLayer({
             'id': 'airplane',
@@ -119,7 +120,8 @@ export default class MapController {
                     passiveRendering: true,
                     preserveDrawingBuffer: true,
                     sky: true,
-                    terrain: true
+                    terrain: true,
+                    fov:45
                 });
                 var options = {
                     obj: 'assets/models/a320.glb',
@@ -157,15 +159,20 @@ export default class MapController {
 
     
    getSunPosition(timestamp, position) {
-  
+   
     const sunPosition = getPosition(timestamp || Date.now(), position[1], position[0]);
+    
     const sunAzimuth = 180 + (sunPosition.azimuth * 180) / Math.PI;
     const sunAltitude = 90 - (sunPosition.altitude * 180) / Math.PI;
-
-    return  [sunAzimuth, sunAltitude]
+    
+    return  [sunAzimuth, sunAltitude, sunPosition]
    }
 
     setSkyColor(timestamp, position) {
-        this.map.setPaintProperty('sky-layer', 'sky-atmosphere-sun', this.getSunPosition(timestamp, position));
+     
+        const [sunAzimuth, sunAltitude, sunPosition] = this.getSunPosition(timestamp, position);
+   
+        this.map.setPaintProperty('sky-layer', 'sky-atmosphere-sun', [sunAzimuth, sunAltitude]);
+        this.map.setPaintProperty('map-tiler', 'raster-brightness-max', this.sunAltitudeScale(sunPosition.altitude));
     }
 }

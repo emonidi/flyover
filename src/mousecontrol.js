@@ -7,6 +7,7 @@ export default class MouseControl{
             freeView: false,
             cameraAngle:0,
             mapPitch: 70,
+            timestamShift:0,
         }
         this.isDragging = false;
     }

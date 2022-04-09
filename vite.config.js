@@ -5,8 +5,9 @@ export default {
     server:{
         hmr:true,
         watch:true,
+        cors:true
     },
-    assetsInclude:['models/**/*'],
+    assetsInclude:['models/**/*','assets/**/*'],
     plugins:[
         copy({
             targets:[{src:'./models/a320.glb',dest:'/dist/models/a320.glb'}],

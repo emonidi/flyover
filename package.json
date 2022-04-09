@@ -4,7 +4,7 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --port 8000",
+    "dev": "vite --host --port 8000",
     "build": "vite build",
     "preview": "vite preview"
   },
@@ -23,6 +23,8 @@
     "@webcomponents/webcomponentsjs": "^2.6.0",
     "d3-geo": "^3.0.1",
     "d3-interpolate": "^3.0.1",
+    "d3-scale": "^4.0.2",
+    "d3-scale-chromatic": "^3.0.0",
     "mapbox-gl": "^2.7.1",
     "material-components-web": "^13.0.0",
     "rollup-plugin-gltf": "^2.0.0",
