@@ -82,6 +82,7 @@ const setGui = () => {
 
     gui.add(mouseControl.state, 'timestamShift', -12, 12).name("Timestamp shift (Hr)").onChange((ev) => {
         mouseControl.setState('timestamShift', ev);
+        animate(true)
     })
 }
 
@@ -198,7 +199,7 @@ function animate(justOnce) {
 
        
 
-        mapcontroller.setSkyColor(interpolatedTimeStamp,alongRoute.geometry.coordinates)
+        mapcontroller.setSkyAndLandColor(interpolatedTimeStamp,alongRoute.geometry.coordinates,elevation)
 
 
         if (!mouseControl.state.freeView) {

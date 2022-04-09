@@ -1,7 +1,7 @@
 import mapboxgl from 'mapbox-gl';
 import { Threebox } from 'threebox-plugin';
 import { getPosition, getTimes } from 'suncalc';
-import {scaleLinear} from 'd3-scale';
+import {scaleLinear, scaleSequential} from 'd3-scale';
 export default class MapController {
 
 
@@ -14,8 +14,8 @@ export default class MapController {
         this.map.on('load', () => {
             this.initializeScene(flightLine, flight, flightLinesCollection);
         })
-       
-        this.sunAltitudeScale = scaleLinear([0,Math.PI/2],[0.4,1]);
+        this.nightLightOpacityScale = scaleSequential([0,1500], [0,.5]);
+        this.sunAltitudeScale = scaleLinear([0,Math.PI/2],[0.5,1]);
        
     }
 
@@ -24,7 +24,7 @@ export default class MapController {
             container: 'map',
             pitch: 90,
             center: [...flight.features[1].geometry.coordinates],
-            zoom: 8,
+            zoom: 5,
             style: {
                 version: 8,
                 sources: {
@@ -67,12 +67,29 @@ export default class MapController {
             this.animate(true)
         })
 
+        map.addSource('night-earth',{
+            type:'raster',
+            tiles:['http://map1.vis.earthdata.nasa.gov/wmts-webmerc/VIIRS_CityLights_2012/default//GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpg'],
+            tileSize:256,
+        })
+
+        map.addLayer({
+            id:'night-earth',
+            source:'night-earth',
+            type:'raster',
+            paint:{
+                'raster-opacity':0
+            }
+            
+        })
+
+        
      
         map.addSource('mapbox-dem', {
             'type': 'raster-dem',
             'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
             'tileSize': 512,
-            'maxzoom': 14
+            'maxzoom': 20
         });
         map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1 });
         map.addLayer({
@@ -168,11 +185,16 @@ export default class MapController {
     return  [sunAzimuth, sunAltitude, sunPosition]
    }
 
-    setSkyColor(timestamp, position) {
-     
+    setSkyAndLandColor(timestamp, position, elevation) {
+        const times = getTimes(timestamp, position[1], position[0]);
         const [sunAzimuth, sunAltitude, sunPosition] = this.getSunPosition(timestamp, position);
-   
+        
         this.map.setPaintProperty('sky-layer', 'sky-atmosphere-sun', [sunAzimuth, sunAltitude]);
         this.map.setPaintProperty('map-tiler', 'raster-brightness-max', this.sunAltitudeScale(sunPosition.altitude));
+        if((new Date(times.sunriseEnd).getTime() > timestamp || new Date(times.sunsetStart).getTime() < timestamp)) {
+            this.map.setPaintProperty('night-earth', 'raster-opacity', this.nightLightOpacityScale(elevation));
+        }else{
+            this.map.setPaintProperty('night-earth', 'raster-opacity', 0);
+        }
     }
 }
