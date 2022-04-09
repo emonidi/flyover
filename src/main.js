@@ -79,6 +79,10 @@ const setGui = () => {
     gui.add(mouseControl.state, 'freeView').name("Free view").onChange((ev) => {
         mouseControl.setState('freeView', ev);
     })
+
+    gui.add(mouseControl.state, 'timestamShift', -12, 12).name("Timestamp shift (Hr)").onChange((ev) => {
+        mouseControl.setState('timestamShift', ev);
+    })
 }
 
 setGui(); 
@@ -174,9 +178,10 @@ function animate(justOnce) {
                 flightLinesCollection.features[segmentLineIndex].properties.bearing[1]);
             
             timestampInterpolator = interpolateNumber(
-                flightLinesCollection.features[segmentLineIndex].properties.timestamp[0],
-                flightLinesCollection.features[segmentLineIndex].properties.timestamp[1])
+                flightLinesCollection.features[segmentLineIndex].properties.timestamp[0]+mouseControl.state.timestamShift,
+                flightLinesCollection.features[segmentLineIndex].properties.timestamp[1]+mouseControl.state.timestamShift);
         }
+
         const segmentDistance = length(
             lineSlice(
                 point(flightLinesCollection.features[segmentLineIndex].geometry.coordinates[0]),
@@ -189,9 +194,7 @@ function animate(justOnce) {
 
         const elevation = elevationInterpolator(segmentPhase);
         const bearing = bearingInterpolator(segmentPhase)
-
-        
-        const interpolatedTimeStamp = timestampInterpolator(segmentPhase)
+        const interpolatedTimeStamp = timestampInterpolator(segmentPhase)+mouseControl.state.timestamShift*1000*60*60
 
        
 
