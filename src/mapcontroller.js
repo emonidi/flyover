@@ -69,7 +69,8 @@ export default class MapController {
 
         map.addSource('night-earth',{
             type:'raster',
-            tiles:['http://map1.vis.earthdata.nasa.gov/wmts-webmerc/VIIRS_CityLights_2012/default//GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpg'],
+            //there is proxy here!!! remove for production
+            tiles:['https://emonidi-cors-proxy.herokuapp.com/https://map1.vis.earthdata.nasa.gov/wmts-webmerc/VIIRS_CityLights_2012/default//GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpg'],
             tileSize:256,
         })
 

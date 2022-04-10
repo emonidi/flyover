@@ -29,6 +29,7 @@
     "material-components-web": "^13.0.0",
     "rollup-plugin-gltf": "^2.0.0",
     "suncalc": "^1.9.0",
-    "threebox-plugin": "^2.2.6"
+    "threebox-plugin": "^2.2.6",
+    "vite-plugin-static-copy": "^0.4.4"
   }
 }
