@@ -33,20 +33,23 @@ export default class ControlBar {
     onDecreaseButtonClick(){
         const {speeds,speed} = this;
         const speedIndex = speeds.indexOf(speed);
-        if (speedIndex >= 0) {
-            this.speed = speeds[speedIndex - 1];
-            this.setSpeed(speed)
+        if (speeds[speedIndex] === speeds[0]) {
+            this.speed = speeds[speeds.length - 1];
+        }else{
+            this.speed = this.speeds[speedIndex - 1];
         }
+        this.setSpeed(this.speed)
     }
 
     onIncreaseButtonClick(){
         const {speeds,speed} = this;
         const speedIndex = speeds.indexOf(speed);
-        if (speedIndex < speeds.length - 1) {
+        if (speeds[speedIndex] === speeds[speeds.length - 1]) {
+            this.speed = speeds[0];
+        }else{
             this.speed = this.speeds[speedIndex + 1];
-    
-            this.setSpeed(speed)
         }
+        this.setSpeed(this.speed)
     }
 
     setOnCliderChangeCallback(callback){
