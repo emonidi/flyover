@@ -4,7 +4,7 @@ import mapboxgl from 'mapbox-gl';
 import path from '../sample.gpx.js';
 import togeojson from '@mapbox/togeojson';
 import { interpolateNumber } from 'd3-interpolate';
-
+import Stats from 'https://threejs.org/examples/jsm/libs/stats.module.js';
 import { GUI } from 'https://threejs.org/examples/jsm/libs/lil-gui.module.min.js'
 import {
     nearestPointOnLine,
@@ -31,7 +31,8 @@ if (import.meta.hot) {
     })
 }
 
-
+const stats = new Stats();
+document.body.appendChild(stats.dom);
 const gpx2geojson = togeojson.gpx(new DOMParser().parseFromString(path, 'text/xml'));
 const controlBar = new ControlBar(document.getElementById('controlbar'),Config.speeds);
 const flight = convertPathToGeoJson(gpx2geojson);
@@ -169,18 +170,15 @@ function animate(justOnce) {
 
         if(segmentLineIndex !== currentSegmentIndex){
             currentSegmentIndex = segmentLineIndex;
+            let {altitude, bearing, timestamp} = flightLinesCollection.features[segmentLineIndex].properties;
             segmentLength = length(flightLinesCollection.features[segmentLineIndex], { units: 'meters' })
-            elevationInterpolator = interpolateNumber(
-                flightLinesCollection.features[segmentLineIndex].properties.altitude[0],
-                flightLinesCollection.features[segmentLineIndex].properties.altitude[1])
+            elevationInterpolator = interpolateNumber(altitude[0],altitude[1])
 
-            bearingInterpolator =  interpolateNumber(
-                flightLinesCollection.features[segmentLineIndex].properties.bearing[0],
-                flightLinesCollection.features[segmentLineIndex].properties.bearing[1]);
+            bearingInterpolator =  interpolateNumber(bearing[0],bearing[1]);
             
             timestampInterpolator = interpolateNumber(
-                flightLinesCollection.features[segmentLineIndex].properties.timestamp[0]+mouseControl.state.timestamShift,
-                flightLinesCollection.features[segmentLineIndex].properties.timestamp[1]+mouseControl.state.timestamShift);
+                timestamp[0]+mouseControl.state.timestamShift,
+                timestamp[1]+mouseControl.state.timestamShift);
         }
 
         const segmentDistance = length(
@@ -225,7 +223,7 @@ function animate(justOnce) {
         window.airplane.setRotation({ x: 0, y: 0, z: 180 - bearing })
         window.airplane.setObjectScale(map.transform.scale)
      
-
+        stats.update();
         start = time;
 
         if (!justOnce && !controlBar.isPlaying) return;

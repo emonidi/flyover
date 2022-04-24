@@ -21,6 +21,7 @@
     "@material/slider": "^13.0.0",
     "@turf/turf": "^6.5.0",
     "@webcomponents/webcomponentsjs": "^2.6.0",
+    "add": "^2.0.6",
     "d3-geo": "^3.0.1",
     "d3-interpolate": "^3.0.1",
     "d3-scale": "^4.0.2",
@@ -29,7 +30,12 @@
     "material-components-web": "^13.0.0",
     "rollup-plugin-gltf": "^2.0.0",
     "suncalc": "^1.9.0",
+    "three": "^0.139.2",
+    "three-fatline": "^0.5.3",
+    "three.meshline": "^1.4.0",
     "threebox-plugin": "^2.2.6",
-    "vite-plugin-static-copy": "^0.4.4"
+    "vite-plugin-glsl": "^0.1.2",
+    "vite-plugin-static-copy": "^0.4.4",
+    "yarn": "^1.22.18"
   }
 }
