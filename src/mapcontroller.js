@@ -2,6 +2,8 @@ import mapboxgl from 'mapbox-gl';
 import { Threebox } from 'threebox-plugin';
 import { getPosition, getTimes } from 'suncalc';
 import {scaleLinear, scaleSequential} from 'd3-scale';
+import { createPathLaneModel } from './pahtLaneModel';
+import { center } from '@turf/turf';
 export default class MapController {
 
 
@@ -16,6 +18,8 @@ export default class MapController {
         })
         this.nightLightOpacityScale = scaleSequential([0,1500], [0,.5]);
         this.sunAltitudeScale = scaleLinear([0,Math.PI/2],[0.5,1]);
+
+        
        
     }
 
@@ -135,12 +139,12 @@ export default class MapController {
                 window.tb = new Threebox(map, map.getCanvas().getContext('webgl'), {
                     realSunlight: true,
                     defaultLights: true,
-                    passiveRendering: true,
+                    passiveRendering: false,
                     preserveDrawingBuffer: true,
-                    sky: true,
-                    terrain: true,
-                    fov:45
+                    multiLayer:true,
+                    fov:30
                 });
+               
                 var options = {
                     obj: 'assets/models/a320.glb',
                     type: 'gltf', //type enum, glb format is
@@ -153,9 +157,22 @@ export default class MapController {
                     fixedZoom: 16.5,
                     clone: false
                 }
+                
+                window.tb.camera.frustumCulled = false;
+                function line(){
+                    const [model,position] = createPathLaneModel(flightLine,window.tb);
+                    window.pathModel = model;
+                    window.pathPositoion = position;
+                    model.traverse(function (object) {
+                        object.frustumCulled = false;
+                    });
+                    model.setCoords(position)
+                    window.tb.add(model);
+                }
 
-                window.tb.add(window.tb.line({ geometry: flightLine.geometry.coordinates, color: "red", width: 5 }))
-
+                line();
+                // window.tb.add(window.tb.line({ geometry: flightLine.geometry.coordinates, color: "red", width: 20, lincap:"round",linjoin:"round" }));
+               
                 window.tb.loadObj(options, (model, err) => {
                     model.traverse(function (object) {
                         object.frustumCulled = false;
@@ -164,15 +181,18 @@ export default class MapController {
                     window.airplane = model.setCoords([...flight.features[0].geometry.coordinates, flight.features[0].properties.baro_altitude]);
 
                     window.tb.add(window.airplane);
+
+                   
                 })
             },
-
+            
             render: (gl, matrix) => {
+              
                 window.tb && window.tb.update();
             }
         })
 
-        this.setSkyColor(this.flightLinesCollection.features[1].properties.timestamp[1], this.flightLinesCollection.features[1].geometry.coordinates[1])
+        this.setSkyAndLandColor(this.flightLinesCollection.features[1].properties.timestamp[1], this.flightLinesCollection.features[1].geometry.coordinates[1])
     }
 
     
