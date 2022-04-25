@@ -1,64 +1,106 @@
 @use "@material/icon-button" as icon-button;
-@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@100;300&display=swap');
+@import url("https://fonts.googleapis.com/css2?family=Roboto:wght@100;300&display=swap");
 @import "material-components-web/material-components-web";
+@import "./loader.scss";
+@import "odometer/themes/odometer-theme-default.css";
+#preload {
+  position: fixed;
+  width: 100%;
+  height: 100%;
+  background: #fff;
+  z-index: 1000000;
+}
 
 #app {
-  font-family: 'Roboto', sans-serif;
+  font-family: "Roboto", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-align: center;
   color: #2c3e50;
-  margin-top: 60px;
 }
 
-body{
-  font-family: 'Roboto', sans-serif;
+body {
+  font-family: "Roboto", sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   padding: 0;
   margin: 0;
 }
 
-#map { 
-  position: absolute; 
-  top: 0; 
-  bottom: 0; 
+#map {
+  position: absolute;
+  top: 0;
+  bottom: 0;
   width: 100%;
   height: calc(100vh - 50px);
- }
-#help{
+}
+#help {
   position: absolute;
-  top:0;
-  width:300px;
-  height:450px;
-  z-index:1000000;
-  background-color:white;
+  top: 0;
+  width: 300px;
+  height: 450px;
+  z-index: 1000000;
+  background-color: white;
 }
 
-#controlbar{
+#altitude_gauge {
+  position: fixed;
+  background-color: transparent;
+  right: 0;
+  bottom: calc(10%);
+  width: 110px;
+  height: 50px;
+  background: rgba(0, 0, 0, 0.48);
+  backdrop-filter: blur(8px);
+  border:solid 3px rgba(24, 230, 156, 1);
+  border-top-left-radius: 20px;
+  border-bottom-left-radius: 20px;
+  border-top-left-radius: 40px;
+  border-bottom-left-radius: 40px;
+  border-right: none;
+  border-image-slice: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  .odometer-inside {
+    position: relative;
+    color: #fff;
+    font-size: 1.5em;
+    display: flex;
+    align-content: center;
+    justify-content: center;
+    height: 1.7em;
+    justify-items: center;
+    align-items: center;
+    line-height: 1.5em;
+}
+}
+
+#controlbar {
   display: none;
   position: absolute;
-  bottom:0;
-  width:100%;
-  height:50px;
-  z-index:1000000;
-  background-color:white;
+  bottom: 0;
+  width: 100%;
+  height: 51px;
+  z-index: 1000;
+  background-color: white;
   display: flex;
   flex-direction: row;
 
-  .speed{
+  .speed {
     display: flex;
     flex-direction: row;
     justify-content: center;
   }
 
-  .mdc-slider{
+  .mdc-slider {
     width: 100%;
   }
 
-  .plane_icon{
+  .plane_icon {
     color: #6200ee;
-    transform: rotateZ(90deg) translate(-6px,10px);
+    transform: rotateZ(90deg) translate(-6px, 10px);
     font-size: 32px;
   }
 
@@ -69,17 +111,18 @@ body{
     border: none;
   }
 
-  .mdc-slider__thumb::after,.mdc-slider__thumb::before{
+  .mdc-slider__thumb::after,
+  .mdc-slider__thumb::before {
     background-color: transparent;
   }
- 
-  .speed{
-    button{
-      &:active{
+
+  .speed {
+    button {
+      &:active {
         background-color: rgba(0, 0, 0, 0.54);
       }
     }
-    .speed-label{
+    .speed-label {
       font-size: 1.3rem;
       display: flex;
       align-items: center;

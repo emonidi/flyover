@@ -11,22 +11,23 @@ export function createPathLaneModel(flightLine,tb){
     flightLine = cleanCoords(flightLine);
     const straightProject = tb.utils.lnglatsToWorld(flightLine.geometry.coordinates);
     const normalized = tb.utils.normalizeVertices(straightProject)
-   
-    const geometry = new THREE.BufferGeometry().setFromPoints(normalized.vertices);
+    const curve = new THREE.CatmullRomCurve3(normalized.vertices, false, 'centripetal',1);
+    const points = curve.getPoints(normalized.vertices.length*10);
+    const geometry = new THREE.BufferGeometry().setFromPoints(points);
    
     const material = new MeshLineMaterial( {
-        map: textureLoader.load('https://emonidi-cors-proxy.herokuapp.com/https://thumbs.dreamstime.com/b/web-233347557.jpg',(texture)=>{
+        map: textureLoader.load('https://emonidi-cors-proxy.herokuapp.com/https://www.pinclipart.com/picdir/big/564-5646797_green-arrow-clip-art-animated-arrow-gif-png.png',(texture)=>{
             texture.wrapS = THREE.RepeatWrapping;
             texture.wrapT = THREE.RepeatWrapping;
+            texture.minFilter = THREE.NearestFilter;
         }),
 	    useMap: true,
         sizeAttenuation: true,
-		lineWidth: 12,
-		depthTest: false,
+		lineWidth: 8,
+		depthTest: true,
 		blending: THREE.NormalBlending,
-		transparent: false,
-		repeat: new THREE.Vector2( 48*48,1 )
-     
+		transparent: true,
+		repeat: new THREE.Vector2( 64*64,1 )
     });
     geometry.computeVertexNormals()
     geometry.normalizeNormals()
@@ -43,7 +44,7 @@ export function createPathLaneModel(flightLine,tb){
     const obj = tb.Object3D({
         obj:mesh,
         anchor:'center',
-        adjustment:{x:0,y:0,z:-.51},
+        adjustment:{x:0,y:0,z:-.5},
         clone:true
        
     });

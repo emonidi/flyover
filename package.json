@@ -28,6 +28,7 @@
     "d3-scale-chromatic": "^3.0.0",
     "mapbox-gl": "^2.7.1",
     "material-components-web": "^13.0.0",
+    "odometer": "^0.4.8",
     "rollup-plugin-gltf": "^2.0.0",
     "suncalc": "^1.9.0",
     "three": "^0.139.2",

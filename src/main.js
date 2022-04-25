@@ -1,11 +1,14 @@
 import './style.scss';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import mapboxgl from 'mapbox-gl';
-import path from '../sample.gpx.js';
+
 import togeojson from '@mapbox/togeojson';
 import { interpolateNumber } from 'd3-interpolate';
 import Stats from 'https://threejs.org/examples/jsm/libs/stats.module.js';
 import { GUI } from 'https://threejs.org/examples/jsm/libs/lil-gui.module.min.js'
+import Odometer from 'odometer';
+mapboxgl.workerCount = 12;
+mapboxgl.prewarm();
 import {
     nearestPointOnLine,
     along,
@@ -30,6 +33,15 @@ if (import.meta.hot) {
         window.location.reload();
     })
 }
+debugger;
+const altitudeGauge = new Odometer({
+    el: document.querySelector('#altitude_gauge'),
+    theme:'default',
+    format:'( ddd).d',
+    // animation: 'count'
+})
+altitudeGauge.render();
+const path = await fetch('assets/flights/harbour_ca.xml').then(res => res.text());
 
 const stats = new Stats();
 document.body.appendChild(stats.dom);
@@ -143,11 +155,12 @@ map.on('mousemove',(ev)=>{
 let currentSegmentIndex  = -1;
 let segmentLength, elevationInterpolator, bearingInterpolator, distanceInterpolator, timestampInterpolator;
 
+let keyFrame = 0;
 function animate(justOnce) {
 
     let start = 0;
     const routeDistance = length(flightLine, { units: 'meters' });
-
+    console.log(stats)
     function frame(time) {
         if (!start) start = time;
         const delta = (time - start) * controlBar.speed
@@ -219,12 +232,19 @@ function animate(justOnce) {
       
 
         window.airplane.setCoords([alongRoute.geometry.coordinates[0], alongRoute.geometry.coordinates[1], elevation])
-
+       
         window.airplane.setRotation({ x: 0, y: 0, z: 180 - bearing })
         window.airplane.setObjectScale(map.transform.scale)
      
         stats.update();
         start = time;
+
+        if(keyFrame >=120){
+            altitudeGauge.update(elevation*3.28084);
+            keyFrame=0;
+        }else{
+            keyFrame+=1;
+        }
 
         if (!justOnce && !controlBar.isPlaying) return;
         controlBar.setProgress(phase * 100);
@@ -234,6 +254,7 @@ function animate(justOnce) {
             return;
         };
         !justOnce && window.requestAnimationFrame(frame);
+        justOnce && altitudeGauge.update(elevation);
 
     }
 

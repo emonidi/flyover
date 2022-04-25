@@ -4,6 +4,7 @@ import { getPosition, getTimes } from 'suncalc';
 import {scaleLinear, scaleSequential} from 'd3-scale';
 import { createPathLaneModel } from './pahtLaneModel';
 import { center } from '@turf/turf';
+
 export default class MapController {
 
 
@@ -15,6 +16,7 @@ export default class MapController {
         this.flightLinesCollection = flightLinesCollection;
         this.map.on('load', () => {
             this.initializeScene(flightLine, flight, flightLinesCollection);
+            document.getElementById('preload').style.display = 'none';
         })
         this.nightLightOpacityScale = scaleSequential([0,1500], [0,.5]);
         this.sunAltitudeScale = scaleLinear([0,Math.PI/2],[0.5,1]);
@@ -36,9 +38,9 @@ export default class MapController {
                         type: 'raster',
                         // tiles:['https://api.maptiler.com/tiles/satellite-v2/{z}/{x}/{y}.jpg?key=e1RrPnLOPEw0LCkLeKYK'], //maptiler
                         // tiles:['https://api.mapbox.com/styles/v1/mapbox/streets-v9/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoiZW1vbmlkaSIsImEiOiJjajdqd3pvOHYwaThqMzJxbjYyam1lanI4In0.V_4P8bJqzHxM2W9APpkf1w'],
-                        tiles: ['https://2.aerial.maps.ls.hereapi.com/maptile/2.1/maptile/newest/satellite.day/{z}/{x}/{y}/512/png?apiKey=Nt-jchpJ9cxObvHSsTKPCsWMsrXWIELcFU8nAQQPsD0'], //arcgis
-                       
-                        tileSize: 512,
+                        // tiles: ['https://2.aerial.maps.ls.hereapi.com/maptile/2.1/maptile/newest/satellite.day/{z}/{x}/{y}/512/png?apiKey=Nt-jchpJ9cxObvHSsTKPCsWMsrXWIELcFU8nAQQPsD0'], //arcgis
+                        tiles:['https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}&hl=en&s=Ga'], //google
+                        tileSize: 256,
                     }
                 },
                 layers: [
@@ -75,7 +77,7 @@ export default class MapController {
             type:'raster',
             //there is proxy here!!! remove for production
             tiles:['https://emonidi-cors-proxy.herokuapp.com/https://map1.vis.earthdata.nasa.gov/wmts-webmerc/VIIRS_CityLights_2012/default//GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpg'],
-            tileSize:256,
+            tileSize:512,
         })
 
         map.addLayer({
@@ -110,26 +112,6 @@ export default class MapController {
             }
         });
 
-       
-        map.addSource('flightLine', {
-            type: 'geojson',
-            data: flightLine
-        })
-
-        map.addLayer({
-            'id': 'flightLine',
-            'type': 'line',
-            'source': 'flightLine',
-            'layout': {
-                'line-join': 'round',
-                'line-cap': 'round'
-            },
-            'paint': {
-                'line-color': '#888',
-                'line-width': 8
-            }
-        })
-
         map.addLayer({
             'id': 'airplane',
             'type': 'custom',
@@ -137,10 +119,10 @@ export default class MapController {
             onAdd: (map, gl) => {
 
                 window.tb = new Threebox(map, map.getCanvas().getContext('webgl'), {
-                    realSunlight: true,
+                    
                     defaultLights: true,
                     passiveRendering: false,
-                    preserveDrawingBuffer: true,
+                    preserveDrawingBuffer: false,
                     multiLayer:true,
                     fov:30
                 });
@@ -155,7 +137,8 @@ export default class MapController {
                     feature: flight.features[0], // a valid GeoJson feature
                     anchor: 'center',
                     fixedZoom: 16.5,
-                    clone: false
+                    clone: false,
+                    transparent:false
                 }
                 
                 window.tb.camera.frustumCulled = false;
