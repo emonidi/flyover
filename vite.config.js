@@ -7,19 +7,19 @@ export default {
         watch: true,
         cors:true
     },
-    assetsInclude: ['models/**/*', 'assets/**/*'],
-    plugins: [
-        viteStaticCopy({
-            targets: [
-                {
-                    src: 'assets/models',
-                    dest: 'assets'
-                },
-                {
-                    src: 'netlify.toml',
-                    dest:''
-                }
-            ]
-        })
-    ]
+    // assetsInclude: ['models/**/*', 'assets/**/*'],
+    // plugins: [
+    //     viteStaticCopy({
+    //         targets: [
+    //             {
+    //                 src: 'assets/models',
+    //                 dest: 'assets'
+    //             },
+    //             {
+    //                 src: 'netlify.toml',
+    //                 dest:''
+    //             }
+    //         ]
+    //     })
+    // ]
 }
