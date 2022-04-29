@@ -14,8 +14,8 @@ export default class ControlBar {
         this.isPlaying = false;
         this.increaseButton = container.querySelector('#speed_up');
         this.increaseButton.addEventListener('click', this.onIncreaseButtonClick.bind(this));
-        this.decreaseButton = container.querySelector('#speed_down');
-        this.decreaseButton.addEventListener('click', this.onDecreaseButtonClick.bind(this));
+        // this.decreaseButton = container.querySelector('#speed_down');
+        // this.decreaseButton.addEventListener('click', this.onDecreaseButtonClick.bind(this));
         this.speedLabel = container.querySelector("#speed-label")
         this.playButton = container.querySelector('#play');
         

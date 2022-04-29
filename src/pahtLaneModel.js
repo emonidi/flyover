@@ -16,7 +16,7 @@ export function createPathLaneModel(flightLine,tb){
     const geometry = new THREE.BufferGeometry().setFromPoints(points);
    
     const material = new MeshLineMaterial( {
-        map: textureLoader.load('https://emonidi-cors-proxy.herokuapp.com/https://www.pinclipart.com/picdir/big/564-5646797_green-arrow-clip-art-animated-arrow-gif-png.png',(texture)=>{
+        map: textureLoader.load('/assets/paths/pattern.png',(texture)=>{
             texture.wrapS = THREE.RepeatWrapping;
             texture.wrapT = THREE.RepeatWrapping;
             texture.minFilter = THREE.NearestFilter;

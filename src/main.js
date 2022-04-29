@@ -239,7 +239,7 @@ if (import.meta.hot) {
             stats.update();
             start = time;
 
-            if (keyFrame >= 120) {
+            if (keyFrame >= 60) {
                 altitudeGauge.update(elevation * 3.28084);
                 keyFrame = 0;
             } else {

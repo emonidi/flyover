@@ -17,10 +17,11 @@ export default class MapController {
         this.map.on('load', () => {
             this.initializeScene(flightLine, flight, flightLinesCollection);
             document.getElementById('preload').style.display = 'none';
+            this.map.addControl(new mapboxgl.AttributionControl(), 'top-left');
         })
         this.nightLightOpacityScale = scaleSequential([0,1500], [0,.5]);
         this.sunAltitudeScale = scaleLinear([0,Math.PI/2],[0.5,1]);
-
+        
         
        
     }
