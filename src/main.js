@@ -33,12 +33,12 @@ if (import.meta.hot) {
         window.location.reload();
     })
 }
-(async () =>{
+(async () => {
 
     const altitudeGauge = new Odometer({
         el: document.querySelector('#altitude_gauge'),
         theme: 'default',
-        format: '( ddd).d',
+        format: '( ddd)',
     })
     altitudeGauge.render();
     const path = await fetch('assets/flights/harbour_ca.xml').then(res => res.text());
@@ -239,7 +239,7 @@ if (import.meta.hot) {
             stats.update();
             start = time;
 
-            if (keyFrame >= 60) {
+            if (keyFrame >= 90) {
                 altitudeGauge.update(elevation * 3.28084);
                 keyFrame = 0;
             } else {
