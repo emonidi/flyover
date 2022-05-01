@@ -7,8 +7,8 @@ import { interpolateNumber } from 'd3-interpolate';
 import Stats from 'https://threejs.org/examples/jsm/libs/stats.module.js';
 import { GUI } from 'https://threejs.org/examples/jsm/libs/lil-gui.module.min.js'
 import Odometer from 'odometer';
-mapboxgl.workerCount = 12;
-mapboxgl.prewarm();
+const hasStats = location.search.indexOf('stats') > 0;
+
 import {
     nearestPointOnLine,
     along,
@@ -17,10 +17,11 @@ import {
     length,
     featureCollection,
     lineSlice,
-    rhumbDestination
+    rhumbDestination, 
+    bearingToAngle
 } from '@turf/turf';
 
-import { convertPathToGeoJson, createFlightLinesCollection } from './geo_utils';
+import { convertPathToGeoJson, createFlightLinesCollection, degToCompass } from './geo_utils';
 
 import ControlBar from './controlbar';
 import MouseControl from './mousecontrol';
@@ -35,6 +36,8 @@ if (import.meta.hot) {
 }
 (async () => {
 
+    mapboxgl.workerCount = 12;
+    mapboxgl.prewarm();
     const altitudeGauge = new Odometer({
         el: document.querySelector('#altitude_gauge'),
         theme: 'default',
@@ -44,7 +47,7 @@ if (import.meta.hot) {
     const path = await fetch('assets/flights/harbour_ca.xml').then(res => res.text());
 
     const stats = new Stats();
-    document.body.appendChild(stats.dom);
+    hasStats && document.body.appendChild(stats.dom);
     const gpx2geojson = togeojson.gpx(new DOMParser().parseFromString(path, 'text/xml'));
     const controlBar = new ControlBar(document.getElementById('controlbar'), Config.speeds);
     const flight = convertPathToGeoJson(gpx2geojson);
@@ -69,7 +72,7 @@ if (import.meta.hot) {
 
     const { map, camera } = mapcontroller;
 
-
+    const directionValueEl = document.querySelector(".direction .value");
 
     const setGui = () => {
         gui = new GUI();
@@ -160,7 +163,7 @@ if (import.meta.hot) {
 
         let start = 0;
         const routeDistance = length(flightLine, { units: 'meters' });
-        console.log(stats)
+    
         function frame(time) {
             if (!start) start = time;
             const delta = (time - start) * controlBar.speed
@@ -231,12 +234,13 @@ if (import.meta.hot) {
             }
 
 
+            directionValueEl.innerHTML = degToCompass(bearingToAngle(bearing))
             window.airplane.setCoords([alongRoute.geometry.coordinates[0], alongRoute.geometry.coordinates[1], elevation])
 
             window.airplane.setRotation({ x: 0, y: 0, z: 180 - bearing })
             window.airplane.setObjectScale(map.transform.scale)
 
-            stats.update();
+            hasStats && stats.update();
             start = time;
 
             if (keyFrame >= 90) {

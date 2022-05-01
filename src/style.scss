@@ -118,6 +118,27 @@ body {
 
 }
 
+.direction{
+  background: rgba(255,255,255,0.7);
+  z-index: 10001;
+  position: absolute;
+  padding: 4px 8px;
+  border-radius: 4px;
+  top: 60px;
+  left: 16px;
+  display: flex;
+  align-items: center;
+  .label{
+    font-size: 11px;
+    margin-right: 4px;
+    font-weight: 700;
+  }
+  .value{
+    font-size: 15px;
+    font-weight: bold;
+  }
+}
+
 #controlbar {
 
   #play {
@@ -145,6 +166,8 @@ body {
 
   display: flex;
   flex-direction: row;
+
+ 
 
   .speed {
     display: flex;
