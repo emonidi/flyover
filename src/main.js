@@ -38,19 +38,31 @@ if (import.meta.hot) {
 
     mapboxgl.workerCount = 12;
     mapboxgl.prewarm();
+
     const altitudeGauge = new Odometer({
         el: document.querySelector('#altitude_gauge'),
         theme: 'default',
         format: '( ddd)',
     })
+    const speedGauge = new Odometer({
+        el: document.querySelector("#speed_gauge"), 
+        theme:'default',
+        format: '( ddd)'
+    })
+
+    speedGauge.render();
     altitudeGauge.render();
-    const path = await fetch('assets/flights/harbour_ca.xml').then(res => res.text());
+
+    const path = await fetch('assets/flights/flight.json').then(res => res.text());
 
     const stats = new Stats();
     hasStats && document.body.appendChild(stats.dom);
-    const gpx2geojson = togeojson.gpx(new DOMParser().parseFromString(path, 'text/xml'));
+    // const gpx2geojson = togeojson.gpx(new DOMParser().parseFromString(path, 'text/xml'));
     const controlBar = new ControlBar(document.getElementById('controlbar'), Config.speeds);
-    const flight = convertPathToGeoJson(gpx2geojson);
+    
+    const flight = convertPathToGeoJson(JSON.parse(path));
+   
+   
     const mouseControl = new MouseControl();
 
 
@@ -156,7 +168,7 @@ if (import.meta.hot) {
     })
 
     let currentSegmentIndex = -1;
-    let segmentLength, elevationInterpolator, bearingInterpolator, distanceInterpolator, timestampInterpolator;
+    let segmentLength, elevationInterpolator, bearingInterpolator, distanceInterpolator, timestampInterpolator, speedInterpolator;
 
     let keyFrame = 0;
     function animate(justOnce) {
@@ -186,11 +198,14 @@ if (import.meta.hot) {
 
             if (segmentLineIndex !== currentSegmentIndex) {
                 currentSegmentIndex = segmentLineIndex;
-                let { altitude, bearing, timestamp } = flightLinesCollection.features[segmentLineIndex].properties;
+                let { altitude, bearing, timestamp, speed } = flightLinesCollection.features[segmentLineIndex].properties;
+               
                 segmentLength = length(flightLinesCollection.features[segmentLineIndex], { units: 'meters' })
                 elevationInterpolator = interpolateNumber(altitude[0], altitude[1])
 
                 bearingInterpolator = interpolateNumber(bearing[0], bearing[1]);
+               
+                speedInterpolator = interpolateNumber(speed[0],speed[1])
 
                 timestampInterpolator = interpolateNumber(
                     timestamp[0] + mouseControl.state.timestamShift,
@@ -210,7 +225,8 @@ if (import.meta.hot) {
             const elevation = elevationInterpolator(segmentPhase);
             const bearing = bearingInterpolator(segmentPhase)
             const interpolatedTimeStamp = timestampInterpolator(segmentPhase) + mouseControl.state.timestamShift * 1000 * 60 * 60
-
+            const speed = speedInterpolator(segmentPhase)
+          
 
 
             mapcontroller.setSkyAndLandColor(interpolatedTimeStamp, alongRoute.geometry.coordinates, elevation)
@@ -245,6 +261,7 @@ if (import.meta.hot) {
 
             if (keyFrame >= 90) {
                 altitudeGauge.update(elevation * 3.28084);
+                speedGauge.update(speed)
                 keyFrame = 0;
             } else {
                 keyFrame += 1;
