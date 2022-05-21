@@ -259,8 +259,8 @@ if (import.meta.hot) {
             hasStats && stats.update();
             start = time;
 
-            if (keyFrame >= 90) {
-                altitudeGauge.update(elevation * 3.28084);
+            if (keyFrame >= 60) {
+                altitudeGauge.update(elevation /** *3.28084 if eleveation in meters */ );
                 speedGauge.update(speed)
                 keyFrame = 0;
             } else {
