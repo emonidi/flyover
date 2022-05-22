@@ -22,6 +22,7 @@
     "@turf/turf": "^6.5.0",
     "@webcomponents/webcomponentsjs": "^2.6.0",
     "add": "^2.0.6",
+    "curve-interpolator": "^2.0.8",
     "d3-geo": "^3.0.1",
     "d3-interpolate": "^3.0.1",
     "d3-scale": "^4.0.2",

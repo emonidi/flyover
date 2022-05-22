@@ -1,19 +1,12 @@
-import {center, cleanCoords} from '@turf/turf';
-
-import {THREE,Threebox} from 'threebox-plugin'
+import {THREE} from 'threebox-plugin'
 import {MeshLine, MeshLineMaterial} from 'three.meshline';
 
 export function createPathLaneModel(flightLine,tb){
     const textureLoader = new THREE.TextureLoader();
     
- 
-  
-    flightLine = cleanCoords(flightLine);
     const straightProject = tb.utils.lnglatsToWorld(flightLine.geometry.coordinates);
     const normalized = tb.utils.normalizeVertices(straightProject)
-    const curve = new THREE.CatmullRomCurve3(normalized.vertices, false, 'centripetal',1);
-    const points = curve.getPoints(normalized.vertices.length*10);
-    const geometry = new THREE.BufferGeometry().setFromPoints(points);
+    const geometry = new THREE.BufferGeometry().setFromPoints(normalized.vertices);
    
     const material = new MeshLineMaterial( {
         map: textureLoader.load('/assets/paths/pattern.png',(texture)=>{
@@ -27,7 +20,7 @@ export function createPathLaneModel(flightLine,tb){
 		depthTest: true,
 		blending: THREE.NormalBlending,
 		transparent: true,
-		repeat: new THREE.Vector2( 64*64,1 )
+		repeat: new THREE.Vector2( 100*100,1 )
     });
     geometry.computeVertexNormals()
     geometry.normalizeNormals()
@@ -37,8 +30,8 @@ export function createPathLaneModel(flightLine,tb){
     
     const mesh = new THREE.Mesh(line.geometry, material);
     mesh.morphTargetInfluences = [0,0,0]
-    mesh.frustumCulled = false;
-    console.log(tb.unprojectFromWorld(normalized.position))
+    mesh.frustumCulled = true;
+    
     
   
     const obj = tb.Object3D({

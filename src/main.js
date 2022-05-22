@@ -2,7 +2,7 @@ import './style.scss';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import mapboxgl from 'mapbox-gl';
 
-import togeojson from '@mapbox/togeojson';
+// import togeojson from '@mapbox/togeojson';
 import { interpolateNumber } from 'd3-interpolate';
 import Stats from 'https://threejs.org/examples/jsm/libs/stats.module.js';
 import { GUI } from 'https://threejs.org/examples/jsm/libs/lil-gui.module.min.js'
@@ -70,6 +70,7 @@ if (import.meta.hot) {
     const flightLinesCollection = featureCollection(createFlightLinesCollection(flight));
 
     flightLinesCollection.features = flightLinesCollection.features.filter(p => p !== undefined);
+    
 
     let gui;
     let timeElapsed = 0;
@@ -223,7 +224,7 @@ if (import.meta.hot) {
             const segmentPhase = segmentDistance / segmentLength;
 
             const elevation = elevationInterpolator(segmentPhase);
-            const bearing = bearingInterpolator(segmentPhase)
+            const bearing = bearingInterpolator(segmentPhase);
             const interpolatedTimeStamp = timestampInterpolator(segmentPhase) + mouseControl.state.timestamShift * 1000 * 60 * 60
             const speed = speedInterpolator(segmentPhase)
           
@@ -260,7 +261,7 @@ if (import.meta.hot) {
             start = time;
 
             if (keyFrame >= 60) {
-                altitudeGauge.update(elevation /** *3.28084 if eleveation in meters */ );
+                altitudeGauge.update(elevation *3.28084 );
                 speedGauge.update(speed)
                 keyFrame = 0;
             } else {

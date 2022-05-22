@@ -2147,6 +2147,11 @@ csscolorparser@~1.0.3:
   resolved "https://registry.yarnpkg.com/csscolorparser/-/csscolorparser-1.0.3.tgz#b34f391eea4da8f3e98231e2ccd8df9c041f171b"
   integrity sha1-s085HupNqPPpgjHizNjfnAQfFxs=
 
+curve-interpolator@^2.0.8:
+  version "2.0.8"
+  resolved "https://registry.yarnpkg.com/curve-interpolator/-/curve-interpolator-2.0.8.tgz#700106e9e9c2331349011178c6814148307491b1"
+  integrity sha512-2yzZLrzyysQe7BheosIOZqIsGGeQNYuZg9EBjem9V8VmKgEsiFrS7bN2+xd7CAeRLF8z+NlV5mq+Lo3bO2+tqA==
+
 d3-array@1:
   version "1.2.4"
   resolved "https://registry.yarnpkg.com/d3-array/-/d3-array-1.2.4.tgz#635ce4d5eea759f6f605863dbcfc30edc737f71f"
