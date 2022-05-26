@@ -7,7 +7,11 @@ import { interpolateNumber } from 'd3-interpolate';
 import Stats from 'https://threejs.org/examples/jsm/libs/stats.module.js';
 import { GUI } from 'https://threejs.org/examples/jsm/libs/lil-gui.module.min.js'
 import Odometer from 'odometer';
+import Hammer from 'hammerjs';
+
+
 const hasStats = location.search.indexOf('stats') > 0;
+
 
 import {
     nearestPointOnLine,
@@ -18,7 +22,8 @@ import {
     featureCollection,
     lineSlice,
     rhumbDestination, 
-    bearingToAngle
+    bearingToAngle,
+    helpers
 } from '@turf/turf';
 
 import { convertPathToGeoJson, createFlightLinesCollection, degToCompass } from './geo_utils';
@@ -126,6 +131,57 @@ if (import.meta.hot) {
         !controlBar.isPlaying && animate(true);
     })
 
+    const hammer = new Hammer(document.getElementById("map"));
+    hammer.get('pinch').set({enable:true})
+
+    hammer.on('pinch',(ev)=>{
+        if(controlBar.isPlaying){
+            mouseControl.setState('distanceFromPlane',mouseControl.state.distanceFromPlane += (ev.distance*(ev.velocity > 0 ? 1 : -1)/10))
+            ev.preventDefault();
+        }
+    })
+
+    hammer.on('panleft',(ev)=>{
+        if(controlBar.isPlaying){
+            mouseControl.setState('cameraAngle', mouseControl.state.cameraAngle - ev.srcEvent.movementX / 10);
+        }
+    })
+
+    hammer.on('panright',(ev)=>{
+        if(controlBar.isPlaying){
+            mouseControl.setState('cameraAngle', mouseControl.state.cameraAngle - ev.srcEvent.movementX / 10);
+        }
+    })
+
+    hammer.on('panup',(ev)=>{
+        
+        if(controlBar.isPlaying){
+            console.log(ev.distance)
+            console.log(mouseControl.state.mapPitch)
+            if (mouseControl.state.mapPitch >= 83) {
+                mouseControl.setState('mapPitch', 82);
+            } else if (mouseControl.state.mapPitch <= 0) {
+                mouseControl.setState('mapPitch', 0);
+            } else {
+                mouseControl.setState('mapPitch', mouseControl.state.mapPitch + ev.srcEvent.movementY / 10);
+            }
+        }
+    })
+
+    hammer.on('pandown',(ev)=>{
+        if(controlBar.isPlaying){
+            console.log(ev.distance)
+            console.log(mouseControl.state.mapPitch)
+            if (mouseControl.state.mapPitch >= 83) {
+                mouseControl.setState('mapPitch', 82);
+            } else if (mouseControl.state.mapPitch <= 0) {
+                mouseControl.setState('mapPitch', 0);
+            } else {
+                mouseControl.setState('mapPitch', mouseControl.state.mapPitch + ev.srcEvent.movementY / 10);
+            }
+        }
+    })
+
     controlBar.setOnPlayButtonClickCallback(() => {
         controlBar.togglePlay();
         document.querySelectorAll('.mdc-icon-button__icon').forEach(el => el.classList.toggle('mdc-icon-button__icon--on'));
@@ -189,19 +245,28 @@ if (import.meta.hot) {
                 { units: 'meters' }
             );
 
-            const segmentLine = flightLinesCollection.features.map((f, i) => {
+            let distance, segmentLineIndex, segmentLine;
+            flightLinesCollection.features.forEach((f, i) => {
                 const res = nearestPointOnLine(f, alongRoute, { units: 'meters' });
-                res.properties.lineIndex = i
-                return res;
-            }).sort((a, b) => a.properties.dist - b.properties.dist);
-
-            const segmentLineIndex = segmentLine[0].properties.lineIndex;
+                if(!distance){
+                    distance = res.properties.dist,
+                    segmentLineIndex = i
+                    segmentLine = f
+                }else{
+                    if(res.properties.dist < distance){
+                        distance = res.properties.dist,
+                        segmentLineIndex = i
+                        segmentLine = f
+                    }
+                }
+            })
+           
 
             if (segmentLineIndex !== currentSegmentIndex) {
                 currentSegmentIndex = segmentLineIndex;
-                let { altitude, bearing, timestamp, speed } = flightLinesCollection.features[segmentLineIndex].properties;
+                let { altitude, bearing, timestamp, speed, length } = segmentLine.properties;
                
-                segmentLength = length(flightLinesCollection.features[segmentLineIndex], { units: 'meters' })
+                segmentLength = length
                 elevationInterpolator = interpolateNumber(altitude[0], altitude[1])
 
                 bearingInterpolator = interpolateNumber(bearing[0], bearing[1]);
@@ -211,13 +276,15 @@ if (import.meta.hot) {
                 timestampInterpolator = interpolateNumber(
                     timestamp[0] + mouseControl.state.timestamShift,
                     timestamp[1] + mouseControl.state.timestamShift);
+
+               
             }
 
             const segmentDistance = length(
                 lineSlice(
-                    point(flightLinesCollection.features[segmentLineIndex].geometry.coordinates[0]),
+                    point(segmentLine.geometry.coordinates[0]),
                     alongRoute,
-                    flightLinesCollection.features[segmentLineIndex]
+                    segmentLine
                 ), { units: 'meters' })
 
 
@@ -225,12 +292,11 @@ if (import.meta.hot) {
 
             const elevation = elevationInterpolator(segmentPhase);
             const bearing = bearingInterpolator(segmentPhase);
-            const interpolatedTimeStamp = timestampInterpolator(segmentPhase) + mouseControl.state.timestamShift * 1000 * 60 * 60
+           
             const speed = speedInterpolator(segmentPhase)
           
 
-
-            mapcontroller.setSkyAndLandColor(interpolatedTimeStamp, alongRoute.geometry.coordinates, elevation)
+           
 
 
             if (!mouseControl.state.freeView) {
@@ -264,6 +330,8 @@ if (import.meta.hot) {
                 altitudeGauge.update(elevation *3.28084 );
                 speedGauge.update(speed)
                 keyFrame = 0;
+                const interpolatedTimeStamp = timestampInterpolator(segmentPhase) + mouseControl.state.timeStampShiftMilis
+                mapcontroller.setSkyAndLandColor(interpolatedTimeStamp, alongRoute.geometry.coordinates, elevation)
             } else {
                 keyFrame += 1;
             }
@@ -276,7 +344,7 @@ if (import.meta.hot) {
                 return;
             };
             !justOnce && window.requestAnimationFrame(frame);
-            justOnce && altitudeGauge.update(elevation);
+            justOnce && altitudeGauge.update(elevation) &&   speedGauge.update(speed);
 
         }
 

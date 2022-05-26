@@ -75,6 +75,15 @@ body {
   }
 }
 
+.pinch-zoom-container{
+  overflow: hidden;
+    /* position: relative; */
+    /* height: auto; */
+    position: absolute;
+    width: 100%;
+    height: 100% !important;
+}
+
 .plane-speed {
   position: fixed;
   left: 0;

@@ -3,7 +3,8 @@ import { Threebox } from 'threebox-plugin';
 import { getPosition, getTimes } from 'suncalc';
 import {scaleLinear, scaleSequential} from 'd3-scale';
 import { createPathLaneModel } from './pahtLaneModel';
-import { center } from '@turf/turf';
+import config from './config';
+import PinchZoom from 'pinch-zoom-js';
 
 export default class MapController {
 
@@ -14,22 +15,23 @@ export default class MapController {
         this.map = this.init(flight);
         this.camera = this.map.getFreeCameraOptions();
         this.flightLinesCollection = flightLinesCollection;
+        
         this.map.on('load', () => {
             this.initializeScene(flightLine, flight, flightLinesCollection);
             document.getElementById('preload').style.display = 'none';
             this.map.addControl(new mapboxgl.AttributionControl(), 'top-left');
+           
         })
         this.nightLightOpacityScale = scaleSequential([0,1500], [0,.5]);
         this.sunAltitudeScale = scaleLinear([0,Math.PI/2],[0.5,1]);
-        
-        
+       
        
     }
 
     init(flight) {
         const map = new mapboxgl.Map({
             container: 'map',
-            pitch: 90,
+            pitch: 75,
             center: [...flight.features[1].geometry.coordinates],
             zoom: 5,
             style: {
@@ -41,7 +43,19 @@ export default class MapController {
                         // tiles:['https://api.mapbox.com/styles/v1/mapbox/streets-v9/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoiZW1vbmlkaSIsImEiOiJjajdqd3pvOHYwaThqMzJxbjYyam1lanI4In0.V_4P8bJqzHxM2W9APpkf1w'],
                         // tiles: ['https://2.aerial.maps.ls.hereapi.com/maptile/2.1/maptile/newest/satellite.day/{z}/{x}/{y}/512/png?apiKey=Nt-jchpJ9cxObvHSsTKPCsWMsrXWIELcFU8nAQQPsD0'], //arcgis
                         tiles:['https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}&hl=en&s=Ga'], //google
-                        tileSize: 256,
+                        tileSize: config.isMobile() ? 1024 : 1024,
+                    },
+                    'night-earth':{
+                        type:'raster',
+                        //there is proxy here!!! remove for production
+                        tiles:['https://emonidi-cors-proxy.herokuapp.com/https://map1.vis.earthdata.nasa.gov/wmts-webmerc/VIIRS_CityLights_2012/default//GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpg'],
+                        tileSize:1048,
+                    }, 
+                    'mapbox-dem': {
+                        'type': 'raster-dem',
+                        'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
+                        'tileSize': 1048,
+                        'maxzoom': 20
                     }
                 },
                 layers: [
@@ -49,6 +63,27 @@ export default class MapController {
                         id: 'map-tiler',
                         source: 'map-tiler',
                         type: 'raster'
+                    },
+                    // {
+                    //     id:'night-earth',
+                    //     source:'night-earth',
+                    //     type:'raster',
+                    //     paint:{
+                    //         'raster-opacity':0
+                    //     }
+                        
+                    // }, 
+                    {
+                        'id': 'sky-layer',
+                        'type': 'sky',
+                        'paint': {
+                            // set up the sky layer for atmospheric scattering
+                            'sky-type': 'atmosphere',
+                            // explicitly set the position of the sun rather than allowing the sun to be attached to the main light source
+                            // 'sky-atmosphere-sun':[...this.getSunPosition(this.flightLinesCollection.features[0].properties.timestamp[0], this.flightLinesCollection.features[0].geometry.coordinates[0])].slice(0,2),
+                            // set the intensity of the sun as a light source (0-100 with higher values corresponding to brighter skies)
+                            'sky-atmosphere-sun-intensity': 5
+                        }
                     }
                 ]
             },
@@ -61,8 +96,9 @@ export default class MapController {
 
     initializeScene(flightLine, flight, flightLinesCollection) {
         const { map } = this;
+        map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1 });
         map.flyTo({
-            center: [...flight.features[1].geometry.coordinates],
+            center: [...flight.features[0].geometry.coordinates],
             zoom: 16.5,
             pitch: 75,
             bearing: flightLinesCollection.features[0].properties.bearing[0],
@@ -74,44 +110,8 @@ export default class MapController {
             this.animate(true)
         })
 
-        map.addSource('night-earth',{
-            type:'raster',
-            //there is proxy here!!! remove for production
-            tiles:['https://emonidi-cors-proxy.herokuapp.com/https://map1.vis.earthdata.nasa.gov/wmts-webmerc/VIIRS_CityLights_2012/default//GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpg'],
-            tileSize:512,
-        })
-
-        map.addLayer({
-            id:'night-earth',
-            source:'night-earth',
-            type:'raster',
-            paint:{
-                'raster-opacity':0
-            }
-            
-        })
-
+       
         
-     
-        map.addSource('mapbox-dem', {
-            'type': 'raster-dem',
-            'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
-            'tileSize': 512,
-            'maxzoom': 20
-        });
-        map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1 });
-        map.addLayer({
-            'id': 'sky-layer',
-            'type': 'sky',
-            'paint': {
-                // set up the sky layer for atmospheric scattering
-                'sky-type': 'atmosphere',
-                // explicitly set the position of the sun rather than allowing the sun to be attached to the main light source
-                'sky-atmosphere-sun':[...this.getSunPosition(this.flightLinesCollection.features[0].properties.timestamp[0], this.flightLinesCollection.features[0].geometry.coordinates[0])].slice(0,2),
-                // set the intensity of the sun as a light source (0-100 with higher values corresponding to brighter skies)
-                'sky-atmosphere-sun-intensity': 5
-            }
-        });
 
         map.addLayer({
             'id': 'airplane',
@@ -161,7 +161,7 @@ export default class MapController {
                     model.traverse(function (object) {
                         object.frustumCulled = false;
                     });
-                    model.selected = true;
+                    // model.selected = true;
                     window.airplane = model.setCoords([...flight.features[0].geometry.coordinates, flight.features[0].properties.baro_altitude]);
 
                     window.tb.add(window.airplane);
@@ -196,10 +196,10 @@ export default class MapController {
         
         this.map.setPaintProperty('sky-layer', 'sky-atmosphere-sun', [sunAzimuth, sunAltitude]);
         this.map.setPaintProperty('map-tiler', 'raster-brightness-max', this.sunAltitudeScale(sunPosition.altitude));
-        if((new Date(times.sunriseEnd).getTime() > timestamp || new Date(times.sunsetStart).getTime() < timestamp)) {
-            this.map.setPaintProperty('night-earth', 'raster-opacity', this.nightLightOpacityScale(elevation));
-        }else{
-            this.map.setPaintProperty('night-earth', 'raster-opacity', 0);
-        }
+        // if((new Date(times.sunriseEnd).getTime() > timestamp || new Date(times.sunsetStart).getTime() < timestamp)) {
+        //     this.map.setPaintProperty('night-earth', 'raster-opacity', this.nightLightOpacityScale(elevation));
+        // }else{
+        //     this.map.setPaintProperty('night-earth', 'raster-opacity', 0);
+        // }
     }
 }

@@ -1,10 +1,14 @@
-import { bearing, lineString, bezierSpline } from "@turf/turf";
+import { bearing, lineString, length } from "@turf/turf";
 import { CurveInterpolator } from "curve-interpolator";
+import config from "./config";
 export function degToCompass(num) {
     var val = Math.floor((num / 22.5) + 0.5);
     var arr = ["N", "NNE", "NE", "ENE", "E", "ESE", "SE", "SSE", "S", "SSW", "SW", "WSW", "W", "WNW", "NW", "NNW"];
     return arr[(val % 16)];
 }
+
+
+
 // export const convertPathToGeoJson = (path) => {
 
 //     const geoJson = {
@@ -38,8 +42,10 @@ export function degToCompass(num) {
 // }
 
 export const convertPathToGeoJson = (path) => {
-    const interpolator = new CurveInterpolator(path.features[0].geometry.coordinates,{tension:0.2})
-    const interpolated =  interpolator.getPoints(5000)
+    const interpolator = new CurveInterpolator(path.features[0].geometry.coordinates,{tension:.001})
+    const interpolated =  interpolator.getPoints(config.isMobile() ? 3000 : 5000)
+
+    
     const geoJson = {
         "type": "FeatureCollection",
         "features": []
@@ -76,12 +82,17 @@ export const convertPathToGeoJson = (path) => {
 export const createFlightLinesCollection = (flight) => {
     const ret =  flight.features.map((p, index) => {
         if (index < flight.features.length - 1) {
-            return lineString([p.geometry.coordinates, flight.features[index + 1].geometry.coordinates], {
+            const line = lineString([p.geometry.coordinates, flight.features[index + 1].geometry.coordinates], {
                 altitude: [p.properties.baro_altitude, flight.features[index + 1].properties.baro_altitude],
                 bearing: [p.properties.true_track, flight.features[index + 1].properties.true_track],
                 timestamp: [p.properties.time, flight.features[index + 1].properties.time], 
-                speed:[p.properties.speed, flight.features[index + 1].properties.speed]
+                speed:[p.properties.speed, flight.features[index + 1].properties.speed], 
+                lineIndex:index,
             })
+
+            line.properties.length = length(line, {units:'meters'})
+
+            return line
         }
     })
     
