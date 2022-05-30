@@ -6,7 +6,7 @@ export default class MouseControl{
             elevationFromPlane: 125,
             freeView: false,
             cameraAngle:0,
-            mapPitch: 70,
+            mapPitch: 85,
             timestamShift:0,
             timeStampShiftMilis:0
         }

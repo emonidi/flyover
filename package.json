@@ -4,9 +4,10 @@
   "version": "0.0.0",
   "type": "module",
   "scripts": {
-    "dev": "vite --host --port 8000",
-    "build": "vite build",
-    "preview": "vite preview"
+    "dev": "wasm-pack build ./wasm --target web --release & vite --host --port 8000",
+    "build": "wasm-pack build ./wasm --target web --release & vite build",
+    "preview": "vite preview",
+    "wasm": "wasm-pack build ./wasm --target web"
   },
   "devDependencies": {
     "rollup-plugin-copy": "^3.4.0",
@@ -15,7 +16,8 @@
     "vite": "^2.8.0",
     "vite-plugin-copy": "^0.1.6",
     "vite-plugin-glsl": "^0.1.2",
-    "vite-plugin-static-copy": "^0.4.4"
+    "vite-plugin-static-copy": "^0.4.4",
+    "vite-plugin-wasm-pack": "^0.1.12"
   },
   "dependencies": {
     "@mapbox/togeojson": "^0.16.0",

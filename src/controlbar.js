@@ -1,7 +1,7 @@
 import {MDCSlider} from '@material/slider';
 import '@webcomponents/webcomponentsjs/webcomponents-loader'
 import '@material/mwc-button';
-// import {MDCRipple} from '@material/ripple';
+
 
 
 export default class ControlBar {
@@ -14,8 +14,6 @@ export default class ControlBar {
         this.isPlaying = false;
         this.increaseButton = container.querySelector('#speed_up');
         this.increaseButton.addEventListener('click', this.onIncreaseButtonClick.bind(this));
-        // this.decreaseButton = container.querySelector('#speed_down');
-        // this.decreaseButton.addEventListener('click', this.onDecreaseButtonClick.bind(this));
         this.speedLabel = container.querySelector("#speed-label")
         this.playButton = container.querySelector('#play');
         

@@ -1,8 +1,8 @@
 @use "@material/icon-button"as icon-button;
 @import url("https://fonts.googleapis.com/css2?family=Roboto:wght@100;300&display=swap");
-@import "material-components-web/material-components-web";
 @import "./loader.scss";
 @import "odometer/themes/odometer-theme-default.css";
+@import "material-components-web/material-components-web";
 
 #preload {
   position: fixed;
@@ -35,6 +35,8 @@ body {
   width: 100%;
   // height: calc(100vh - 50px);
   height: 100vh;
+  pointer-events: all;
+  touch-action: manipulation;
 }
 
 #help {

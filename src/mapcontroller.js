@@ -39,22 +39,22 @@ export default class MapController {
                 sources: {
                     'map-tiler': {
                         type: 'raster',
-                        // tiles:['https://api.maptiler.com/tiles/satellite-v2/{z}/{x}/{y}.jpg?key=e1RrPnLOPEw0LCkLeKYK'], //maptiler
+                        tiles:['https://api.maptiler.com/tiles/satellite-v2/{z}/{x}/{y}.jpg?key=e1RrPnLOPEw0LCkLeKYK'], //maptiler
                         // tiles:['https://api.mapbox.com/styles/v1/mapbox/streets-v9/tiles/{z}/{x}/{y}?access_token=pk.eyJ1IjoiZW1vbmlkaSIsImEiOiJjajdqd3pvOHYwaThqMzJxbjYyam1lanI4In0.V_4P8bJqzHxM2W9APpkf1w'],
                         // tiles: ['https://2.aerial.maps.ls.hereapi.com/maptile/2.1/maptile/newest/satellite.day/{z}/{x}/{y}/512/png?apiKey=Nt-jchpJ9cxObvHSsTKPCsWMsrXWIELcFU8nAQQPsD0'], //arcgis
-                        tiles:['https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}&hl=en&s=Ga'], //google
-                        tileSize: config.isMobile() ? 1024 : 1024,
+                        // tiles:['https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}&hl=en&s=Ga'], //google
+                        tileSize: 512
                     },
                     'night-earth':{
                         type:'raster',
                         //there is proxy here!!! remove for production
                         tiles:['https://emonidi-cors-proxy.herokuapp.com/https://map1.vis.earthdata.nasa.gov/wmts-webmerc/VIIRS_CityLights_2012/default//GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpg'],
-                        tileSize:1048,
+                        tileSize: 512
                     }, 
                     'mapbox-dem': {
                         'type': 'raster-dem',
                         'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
-                        'tileSize': 1048,
+                        tileSize: 512,
                         'maxzoom': 20
                     }
                 },
@@ -64,15 +64,15 @@ export default class MapController {
                         source: 'map-tiler',
                         type: 'raster'
                     },
-                    // {
-                    //     id:'night-earth',
-                    //     source:'night-earth',
-                    //     type:'raster',
-                    //     paint:{
-                    //         'raster-opacity':0
-                    //     }
+                    {
+                        id:'night-earth',
+                        source:'night-earth',
+                        type:'raster',
+                        paint:{
+                            'raster-opacity':0
+                        }
                         
-                    // }, 
+                    }, 
                     {
                         'id': 'sky-layer',
                         'type': 'sky',
@@ -100,7 +100,7 @@ export default class MapController {
         map.flyTo({
             center: [...flight.features[0].geometry.coordinates],
             zoom: 16.5,
-            pitch: 75,
+            pitch: 85,
             bearing: flightLinesCollection.features[0].properties.bearing[0],
             essential: true,
             duration: 2000
@@ -196,10 +196,10 @@ export default class MapController {
         
         this.map.setPaintProperty('sky-layer', 'sky-atmosphere-sun', [sunAzimuth, sunAltitude]);
         this.map.setPaintProperty('map-tiler', 'raster-brightness-max', this.sunAltitudeScale(sunPosition.altitude));
-        // if((new Date(times.sunriseEnd).getTime() > timestamp || new Date(times.sunsetStart).getTime() < timestamp)) {
-        //     this.map.setPaintProperty('night-earth', 'raster-opacity', this.nightLightOpacityScale(elevation));
-        // }else{
-        //     this.map.setPaintProperty('night-earth', 'raster-opacity', 0);
-        // }
+        if((new Date(times.sunriseEnd).getTime() > timestamp || new Date(times.sunsetStart).getTime() < timestamp)) {
+            this.map.setPaintProperty('night-earth', 'raster-opacity', this.nightLightOpacityScale(elevation));
+        }else{
+            this.map.setPaintProperty('night-earth', 'raster-opacity', 0);
+        }
     }
 }

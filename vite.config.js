@@ -1,4 +1,5 @@
 import { viteStaticCopy } from 'vite-plugin-static-copy'
+import wasmPack from 'vite-plugin-wasm-pack';
 
 export default {
 
@@ -7,19 +8,7 @@ export default {
         watch: true,
         cors:true
     },
-    // assetsInclude: ['models/**/*', 'assets/**/*'],
-    // plugins: [
-    //     viteStaticCopy({
-    //         targets: [
-    //             {
-    //                 src: 'assets/models',
-    //                 dest: 'assets'
-    //             },
-    //             {
-    //                 src: 'netlify.toml',
-    //                 dest:''
-    //             }
-    //         ]
-    //     })
-    // ]
+    plugins:[
+        wasmPack('./wasm')
+    ]
 }

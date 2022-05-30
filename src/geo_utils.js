@@ -42,8 +42,8 @@ export function degToCompass(num) {
 // }
 
 export const convertPathToGeoJson = (path) => {
-    const interpolator = new CurveInterpolator(path.features[0].geometry.coordinates,{tension:.001})
-    const interpolated =  interpolator.getPoints(config.isMobile() ? 3000 : 5000)
+    const interpolator = new CurveInterpolator(path.features[0].geometry.coordinates,{tension:.02})
+    const interpolated =  interpolator.getPoints(config.isMobile() ? 5000 : 10000)
 
     
     const geoJson = {

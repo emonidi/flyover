@@ -8,6 +8,7 @@ import Stats from 'https://threejs.org/examples/jsm/libs/stats.module.js';
 import { GUI } from 'https://threejs.org/examples/jsm/libs/lil-gui.module.min.js'
 import Odometer from 'odometer';
 import Hammer from 'hammerjs';
+import init, { LineIndex } from 'wasm'
 
 
 const hasStats = location.search.indexOf('stats') > 0;
@@ -21,7 +22,7 @@ import {
     length,
     featureCollection,
     lineSlice,
-    rhumbDestination, 
+    rhumbDestination,
     bearingToAngle,
     helpers
 } from '@turf/turf';
@@ -41,8 +42,12 @@ if (import.meta.hot) {
 }
 (async () => {
 
-    mapboxgl.workerCount = 12;
+    mapboxgl.workerCount = 8;
     mapboxgl.prewarm();
+
+    const wasm = await init();
+
+
 
     const altitudeGauge = new Odometer({
         el: document.querySelector('#altitude_gauge'),
@@ -50,8 +55,8 @@ if (import.meta.hot) {
         format: '( ddd)',
     })
     const speedGauge = new Odometer({
-        el: document.querySelector("#speed_gauge"), 
-        theme:'default',
+        el: document.querySelector("#speed_gauge"),
+        theme: 'default',
         format: '( ddd)'
     })
 
@@ -64,10 +69,10 @@ if (import.meta.hot) {
     hasStats && document.body.appendChild(stats.dom);
     // const gpx2geojson = togeojson.gpx(new DOMParser().parseFromString(path, 'text/xml'));
     const controlBar = new ControlBar(document.getElementById('controlbar'), Config.speeds);
-    
+
     const flight = convertPathToGeoJson(JSON.parse(path));
-   
-   
+
+
     const mouseControl = new MouseControl();
 
 
@@ -75,8 +80,9 @@ if (import.meta.hot) {
     const flightLinesCollection = featureCollection(createFlightLinesCollection(flight));
 
     flightLinesCollection.features = flightLinesCollection.features.filter(p => p !== undefined);
-    
 
+    let lineIndex = new LineIndex(flightLinesCollection, flightLine);
+    debugger
     let gui;
     let timeElapsed = 0;
 
@@ -132,30 +138,32 @@ if (import.meta.hot) {
     })
 
     const hammer = new Hammer(document.getElementById("map"));
-    hammer.get('pinch').set({enable:true})
+    hammer.get('pinch').set({ enable: true })
 
-    hammer.on('pinch',(ev)=>{
-        if(controlBar.isPlaying){
-            mouseControl.setState('distanceFromPlane',mouseControl.state.distanceFromPlane += (ev.distance*(ev.velocity > 0 ? 1 : -1)/10))
+    hammer.on('pinch', (ev) => {
+        if (controlBar.isPlaying) {
+            mouseControl.setState('distanceFromPlane', mouseControl.state.distanceFromPlane += (ev.distance * (ev.velocity > 0 ? 1 : -1) / 10))
             ev.preventDefault();
         }
     })
 
-    hammer.on('panleft',(ev)=>{
-        if(controlBar.isPlaying){
+    hammer.on('panleft', (ev) => {
+        if (controlBar.isPlaying) {
             mouseControl.setState('cameraAngle', mouseControl.state.cameraAngle - ev.srcEvent.movementX / 10);
+            ev.preventDefault();
         }
     })
 
-    hammer.on('panright',(ev)=>{
-        if(controlBar.isPlaying){
+    hammer.on('panright', (ev) => {
+        if (controlBar.isPlaying) {
             mouseControl.setState('cameraAngle', mouseControl.state.cameraAngle - ev.srcEvent.movementX / 10);
+            ev.preventDefault();
         }
     })
 
-    hammer.on('panup',(ev)=>{
-        
-        if(controlBar.isPlaying){
+    hammer.on('panup', (ev) => {
+
+        if (controlBar.isPlaying) {
             console.log(ev.distance)
             console.log(mouseControl.state.mapPitch)
             if (mouseControl.state.mapPitch >= 83) {
@@ -165,11 +173,12 @@ if (import.meta.hot) {
             } else {
                 mouseControl.setState('mapPitch', mouseControl.state.mapPitch + ev.srcEvent.movementY / 10);
             }
+            ev.preventDefault();
         }
     })
 
-    hammer.on('pandown',(ev)=>{
-        if(controlBar.isPlaying){
+    hammer.on('pandown', (ev) => {
+        if (controlBar.isPlaying) {
             console.log(ev.distance)
             console.log(mouseControl.state.mapPitch)
             if (mouseControl.state.mapPitch >= 83) {
@@ -179,6 +188,7 @@ if (import.meta.hot) {
             } else {
                 mouseControl.setState('mapPitch', mouseControl.state.mapPitch + ev.srcEvent.movementY / 10);
             }
+            ev.preventDefault();
         }
     })
 
@@ -224,80 +234,26 @@ if (import.meta.hot) {
         }
     })
 
-    let currentSegmentIndex = -1;
-    let segmentLength, elevationInterpolator, bearingInterpolator, distanceInterpolator, timestampInterpolator, speedInterpolator;
-
     let keyFrame = 0;
     function animate(justOnce) {
 
         let start = 0;
-        const routeDistance = length(flightLine, { units: 'meters' });
-    
+
         function frame(time) {
             if (!start) start = time;
             const delta = (time - start) * controlBar.speed
             timeElapsed += delta;
             phase = timeElapsed / duration;
 
-            const alongRoute = along(
-                flightLine,
-                routeDistance * phase,
-                { units: 'meters' }
-            );
-
-            let distance, segmentLineIndex, segmentLine;
-            flightLinesCollection.features.forEach((f, i) => {
-                const res = nearestPointOnLine(f, alongRoute, { units: 'meters' });
-                if(!distance){
-                    distance = res.properties.dist,
-                    segmentLineIndex = i
-                    segmentLine = f
-                }else{
-                    if(res.properties.dist < distance){
-                        distance = res.properties.dist,
-                        segmentLineIndex = i
-                        segmentLine = f
-                    }
-                }
-            })
-           
-
-            if (segmentLineIndex !== currentSegmentIndex) {
-                currentSegmentIndex = segmentLineIndex;
-                let { altitude, bearing, timestamp, speed, length } = segmentLine.properties;
-               
-                segmentLength = length
-                elevationInterpolator = interpolateNumber(altitude[0], altitude[1])
-
-                bearingInterpolator = interpolateNumber(bearing[0], bearing[1]);
-               
-                speedInterpolator = interpolateNumber(speed[0],speed[1])
-
-                timestampInterpolator = interpolateNumber(
-                    timestamp[0] + mouseControl.state.timestamShift,
-                    timestamp[1] + mouseControl.state.timestamShift);
-
-               
-            }
-
-            const segmentDistance = length(
-                lineSlice(
-                    point(segmentLine.geometry.coordinates[0]),
-                    alongRoute,
-                    segmentLine
-                ), { units: 'meters' })
+            const alongRoute = point([...lineIndex.lineInterpolate(phase)]);
 
 
-            const segmentPhase = segmentDistance / segmentLength;
 
-            const elevation = elevationInterpolator(segmentPhase);
-            const bearing = bearingInterpolator(segmentPhase);
-           
-            const speed = speedInterpolator(segmentPhase)
-          
+            const segmentLineIndex = lineIndex.get_index(alongRoute.geometry.coordinates[0], alongRoute.geometry.coordinates[1])
+            const segmentLine = flightLinesCollection.features[segmentLineIndex];
 
-           
 
+            let [bearing, elevation, speed, timestamp] = lineIndex.interpolateValues(...alongRoute.geometry.coordinates)
 
             if (!mouseControl.state.freeView) {
                 const cameraPoint = rhumbDestination(alongRoute, mouseControl.state.distanceFromPlane, bearing, { units: 'meters', properties: { elevation: elevation } });
@@ -317,20 +273,20 @@ if (import.meta.hot) {
             }
 
 
-            directionValueEl.innerHTML = degToCompass(bearingToAngle(bearing))
-            window.airplane.setCoords([alongRoute.geometry.coordinates[0], alongRoute.geometry.coordinates[1], elevation])
+            directionValueEl.innerHTML = lineIndex.direction(bearing);
+           
+            airplane.setCoords([alongRoute.geometry.coordinates[0], alongRoute.geometry.coordinates[1], elevation])
 
-            window.airplane.setRotation({ x: 0, y: 0, z: 180 - bearing })
-            window.airplane.setObjectScale(map.transform.scale)
-
+            airplane.setRotation({ x: 0, y: 0, z: 180 - bearing })
+            
             hasStats && stats.update();
             start = time;
 
             if (keyFrame >= 60) {
-                altitudeGauge.update(elevation *3.28084 );
+                altitudeGauge.update(elevation * 3.28084);
                 speedGauge.update(speed)
                 keyFrame = 0;
-                const interpolatedTimeStamp = timestampInterpolator(segmentPhase) + mouseControl.state.timeStampShiftMilis
+                const interpolatedTimeStamp = timestamp + mouseControl.state.timeStampShiftMilis
                 mapcontroller.setSkyAndLandColor(interpolatedTimeStamp, alongRoute.geometry.coordinates, elevation)
             } else {
                 keyFrame += 1;
@@ -344,7 +300,7 @@ if (import.meta.hot) {
                 return;
             };
             !justOnce && window.requestAnimationFrame(frame);
-            justOnce && altitudeGauge.update(elevation) &&   speedGauge.update(speed);
+            justOnce && altitudeGauge.update(elevation) && speedGauge.update(speed);
 
         }
 
