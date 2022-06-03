@@ -8,17 +8,19 @@ extern crate geo_types;
 
 
 use geo::{Point, Line, GeometryCollection, LineString, line_locate_point::LineLocatePoint};
-use log::{error, info, warn};
+
 
 use wasm_bindgen::prelude::*;
-use wasm_bindgen_console_logger::DEFAULT_LOGGER;
+
+
 use geojson::{Feature, GeoJson, Value, FeatureCollection, quick_collection};
 use std::{convert::{TryFrom, TryInto}};
 use geo::algorithm::euclidean_distance::EuclideanDistance;
 use geo::algorithm::line_interpolate_point::LineInterpolatePoint;
-use geo::algorithm::haversine_length::HaversineLength;
-use geo::algorithm::line_locate_point;
+use geo::algorithm::haversine_destination::HaversineDestination;
+use  geo::algorithm::simplify::Simplify;
 use interpolation::{lerp};
+
 
 // When the `wee_alloc` feature is enabled, use `wee_alloc` as the global
 // allocator.
@@ -49,7 +51,7 @@ extern "C" {
 
     // Multiple arguments too!
     #[wasm_bindgen(js_namespace = console, js_name = log)]
-    fn log_many(a: &str, b: &str);
+     fn log_many(a: &str, b: &str);
 }
 
 
@@ -66,7 +68,7 @@ struct LineIndex {
 #[wasm_bindgen]
 impl LineIndex {
     #[wasm_bindgen(constructor)]
-    pub fn new(flightLineCollection:&JsValue, fligthLineValue:&JsValue) -> LineIndex{
+    pub fn new(flightLineCollection:&JsValue, fligthLineValue:&JsValue, epsilon:f64) -> LineIndex{
         utils::set_panic_hook();
 
         let flightLineGeoJson:GeoJson = fligthLineValue.into_serde().unwrap();
@@ -74,10 +76,13 @@ impl LineIndex {
         let mut flightLine;
         match flightLineGeom {
             geo::Geometry::LineString(l)=>{
-                flightLine = l;
+                flightLine = l.simplify(&epsilon);
+                log(&format!("{}",flightLine.lines().len()))
             }, 
             _ => todo!()
         }
+
+        
 
         let json:GeoJson = flightLineCollection.into_serde().unwrap();
         let collection:GeometryCollection<f64>= quick_collection(&json).unwrap();
@@ -88,6 +93,8 @@ impl LineIndex {
                _ => todo!()
            }
         }).collect();
+
+        
 
         return LineIndex { 
             flightLineCollection: lines, 
@@ -100,6 +107,7 @@ impl LineIndex {
     pub fn get_index(&mut self,x:f64, y:f64) -> i32{
         let mut distance:f64 = 100000000000000.0; 
         let mut line_index:i32 = 0;
+      
         let point = Point::new(x, y);
         self.flightLineCollection.iter().enumerate().for_each(|(index,line)|{
             let dist = line.euclidean_distance(&point);
@@ -117,13 +125,17 @@ impl LineIndex {
        return vec![point.x(),point.y()]
     }
 
-    pub fn interpolateValues(&self, x:f64, y:f64)-> Vec<f64>{
+    pub fn interpolateValues(&mut self, phase:f64, distanceFromPlane:i32)-> Vec<f64>{
+
+        let p = self.lineInterpolate(phase);
+
+        self.get_index(p[0], p[1]);
         
         let currentSegment = self.flightLineFeatureCollection.features.get(self.currentLineIndex as usize).unwrap();
         
-        let line:&LineString<f64> = self.flightLineCollection.get(self.currentLineIndex as usize).unwrap();
+        let line:&LineString<f64> = &self.flightLineCollection[self.currentLineIndex as usize];
         
-        let point = Point::new(x, y);
+        let point = Point::new(p[0], p[1]);
         let phase = line.line_locate_point(&point).unwrap();
         // let currentPointLineLength = segmentLength 
         
@@ -137,7 +149,8 @@ impl LineIndex {
         let interpolatedSpeed: f64 = lerp(&speed[0],&speed[1],&phase);
         let timestamp: Vec<f64> = serde_json::from_value(currentSegment.property("timestamp").unwrap().to_owned()).unwrap();
         let interpolatedTimestamp: f64 = lerp(&timestamp[0],&timestamp[1],&phase);
-        return vec![interpolatedBearing,interpolatedElevation, interpolatedSpeed, interpolatedTimestamp];
+        let camPoint = point.haversine_destination(interpolatedBearing, distanceFromPlane as f64);
+        return vec![p[0],p[1], interpolatedBearing,interpolatedElevation, interpolatedSpeed, interpolatedTimestamp, camPoint.x(), camPoint.y()];
     }
 
     pub fn direction(&self, bearing:f64) -> String{
@@ -154,21 +167,9 @@ impl LineIndex {
     }
 }
 
-#[wasm_bindgen]
-pub fn start() {
-    log::set_logger(&DEFAULT_LOGGER).unwrap();
-    log::set_max_level(log::LevelFilter::Info);
-
-    error!("Error message");
-    warn!("Warning message");
-    info!("Informational message");
-}
 
 
-#[wasm_bindgen]
-pub fn greet(a:&str) {
-    alert(&format!("Hello,{}",a));   
-}
+
 
 #[wasm_bindgen]
 pub fn get_current_segment_index(along:&JsValue, path:&JsValue) -> usize{

@@ -100,10 +100,10 @@ export default class MapController {
         map.flyTo({
             center: [...flight.features[0].geometry.coordinates],
             zoom: 16.5,
-            pitch: 85,
+            pitch: 82,
             bearing: flightLinesCollection.features[0].properties.bearing[0],
             essential: true,
-            duration: 2000
+            duration: 1600
         });
 
         map.once('moveend', () => {

@@ -1,4 +1,4 @@
-import { bearing, lineString, length } from "@turf/turf";
+import { bearing, lineString, length, simplify } from "@turf/turf";
 import { CurveInterpolator } from "curve-interpolator";
 import config from "./config";
 export function degToCompass(num) {
@@ -43,10 +43,11 @@ export function degToCompass(num) {
 
 export const convertPathToGeoJson = (path) => {
     const interpolator = new CurveInterpolator(path.features[0].geometry.coordinates,{tension:.02})
-    const interpolated =  interpolator.getPoints(config.isMobile() ? 5000 : 10000)
-
+    let interpolated =  interpolator.getPoints(config.isMobile() ? 3000 : 15000)
+   
     
-    const geoJson = {
+    
+    let geoJson = {
         "type": "FeatureCollection",
         "features": []
     }
@@ -75,7 +76,7 @@ export const convertPathToGeoJson = (path) => {
             }
         })
     })
-    
+   
     return geoJson
 }
 
@@ -95,6 +96,6 @@ export const createFlightLinesCollection = (flight) => {
             return line
         }
     })
-    
+  
     return ret
 }

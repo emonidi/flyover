@@ -1,9 +1,6 @@
 import './style.scss';
 import 'mapbox-gl/dist/mapbox-gl.css';
 import mapboxgl from 'mapbox-gl';
-
-// import togeojson from '@mapbox/togeojson';
-import { interpolateNumber } from 'd3-interpolate';
 import Stats from 'https://threejs.org/examples/jsm/libs/stats.module.js';
 import { GUI } from 'https://threejs.org/examples/jsm/libs/lil-gui.module.min.js'
 import Odometer from 'odometer';
@@ -11,20 +8,15 @@ import Hammer from 'hammerjs';
 import init, { LineIndex } from 'wasm'
 
 
+
 const hasStats = location.search.indexOf('stats') > 0;
 
 
 import {
-    nearestPointOnLine,
-    along,
     point,
     lineString,
-    length,
     featureCollection,
-    lineSlice,
     rhumbDestination,
-    bearingToAngle,
-    helpers
 } from '@turf/turf';
 
 import { convertPathToGeoJson, createFlightLinesCollection, degToCompass } from './geo_utils';
@@ -42,11 +34,11 @@ if (import.meta.hot) {
 }
 (async () => {
 
-    mapboxgl.workerCount = 8;
-    mapboxgl.prewarm();
+    mapboxgl.workerCount = 4;
+    // mapboxgl.prewarm();
 
     const wasm = await init();
-
+    
 
 
     const altitudeGauge = new Odometer({
@@ -81,8 +73,11 @@ if (import.meta.hot) {
 
     flightLinesCollection.features = flightLinesCollection.features.filter(p => p !== undefined);
 
-    let lineIndex = new LineIndex(flightLinesCollection, flightLine);
-    debugger
+    let lineIndex = new LineIndex(flightLinesCollection, flightLine,.000009);
+    // let lineIndex;
+    // worker.postMessage({method:"init",data:{flightLinesCollection, flightLine,epsylon:.000009}});
+    
+    
     let gui;
     let timeElapsed = 0;
 
@@ -245,25 +240,18 @@ if (import.meta.hot) {
             timeElapsed += delta;
             phase = timeElapsed / duration;
 
-            const alongRoute = point([...lineIndex.lineInterpolate(phase)]);
-
-
-
-            const segmentLineIndex = lineIndex.get_index(alongRoute.geometry.coordinates[0], alongRoute.geometry.coordinates[1])
-            const segmentLine = flightLinesCollection.features[segmentLineIndex];
-
-
-            let [bearing, elevation, speed, timestamp] = lineIndex.interpolateValues(...alongRoute.geometry.coordinates)
-
+            let [pointX,pointY,bearing, elevation, speed, timestamp, camPointX, camPointY] = lineIndex.interpolateValues(phase, mouseControl.state.distanceFromPlane)
+            // let alongRoute = point([pointX, pointY]);
+            debugger
             if (!mouseControl.state.freeView) {
-                const cameraPoint = rhumbDestination(alongRoute, mouseControl.state.distanceFromPlane, bearing, { units: 'meters', properties: { elevation: elevation } });
+                const cameraPoint = point([camPointX, camPointY]);
 
                 camera.position = mapboxgl.MercatorCoordinate.fromLngLat(
                     {
                         lng: cameraPoint.geometry.coordinates[0],
                         lat: cameraPoint.geometry.coordinates[1]
                     },
-                    cameraPoint.properties.elevation + mouseControl.state.elevationFromPlane
+                    elevation + mouseControl.state.elevationFromPlane
                 );
 
                 camera.setPitchBearing(mouseControl.state.mapPitch, bearing + mouseControl.state.cameraAngle)
@@ -273,9 +261,9 @@ if (import.meta.hot) {
             }
 
 
-            directionValueEl.innerHTML = lineIndex.direction(bearing);
+            
            
-            airplane.setCoords([alongRoute.geometry.coordinates[0], alongRoute.geometry.coordinates[1], elevation])
+            airplane.setCoords([pointX, pointY, elevation])
 
             airplane.setRotation({ x: 0, y: 0, z: 180 - bearing })
             
@@ -283,11 +271,12 @@ if (import.meta.hot) {
             start = time;
 
             if (keyFrame >= 60) {
+                directionValueEl.innerHTML = lineIndex.direction(bearing);
                 altitudeGauge.update(elevation * 3.28084);
                 speedGauge.update(speed)
                 keyFrame = 0;
                 const interpolatedTimeStamp = timestamp + mouseControl.state.timeStampShiftMilis
-                mapcontroller.setSkyAndLandColor(interpolatedTimeStamp, alongRoute.geometry.coordinates, elevation)
+                mapcontroller.setSkyAndLandColor(interpolatedTimeStamp, [pointX, pointY], elevation)
             } else {
                 keyFrame += 1;
             }
