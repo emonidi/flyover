@@ -6,17 +6,16 @@ import { GUI } from 'https://threejs.org/examples/jsm/libs/lil-gui.module.min.js
 import Odometer from 'odometer';
 import Hammer from 'hammerjs';
 import init, { LineIndex } from 'wasm'
-
+import Worker from "./worker?worker"
 
 
 const hasStats = location.search.indexOf('stats') > 0;
-
+const worker = new Worker();
 
 import {
     point,
     lineString,
     featureCollection,
-    rhumbDestination,
 } from '@turf/turf';
 
 import { convertPathToGeoJson, createFlightLinesCollection, degToCompass } from './geo_utils';
@@ -34,11 +33,11 @@ if (import.meta.hot) {
 }
 (async () => {
 
-    mapboxgl.workerCount = 4;
+    mapboxgl.workerCount = 12;
     // mapboxgl.prewarm();
 
     const wasm = await init();
-    
+
 
 
     const altitudeGauge = new Odometer({
@@ -73,11 +72,11 @@ if (import.meta.hot) {
 
     flightLinesCollection.features = flightLinesCollection.features.filter(p => p !== undefined);
 
-    let lineIndex = new LineIndex(flightLinesCollection, flightLine,.000009);
-    // let lineIndex;
-    // worker.postMessage({method:"init",data:{flightLinesCollection, flightLine,epsylon:.000009}});
+    // let lineIndex = new LineIndex(flightLinesCollection, flightLine,.000001);
     
-    
+    worker.postMessage({ method: "init", data: { flightLinesCollection, flightLine, epsylon: .000009 } });
+
+
     let gui;
     let timeElapsed = 0;
 
@@ -121,7 +120,7 @@ if (import.meta.hot) {
         })
     }
 
-    setGui();
+    // setGui();
 
     const totalDuration = (flight.features[flight.features.length - 1].properties.time - flight.features[0].properties.time);
     let duration = totalDuration / controlBar.speed;
@@ -230,69 +229,120 @@ if (import.meta.hot) {
     })
 
     let keyFrame = 0;
+
+    worker.onmessage = (ev) => {
+       
+        if(!ev.data.type) return;
+        let {pointX, pointY, bearing, elevation, speed, timestamp, camPointX, camPointY, direction} = ev.data.data
+
+        airplane.setCoords([pointX, pointY, elevation])
+
+        airplane.setRotation({ x: 0, y: 0, z: 180 - bearing })
+       
+        if (!mouseControl.state.freeView) {
+            const cameraPoint = point([camPointX, camPointY]);
+
+            camera.position = mapboxgl.MercatorCoordinate.fromLngLat(
+                {
+                    lng: cameraPoint.geometry.coordinates[0],
+                    lat: cameraPoint.geometry.coordinates[1]
+                },
+                elevation + mouseControl.state.elevationFromPlane
+            );
+
+            camera.setPitchBearing(mouseControl.state.mapPitch, bearing + mouseControl.state.cameraAngle)
+
+            map.setFreeCameraOptions(camera);
+
+        }    
+        map.triggerRepaint();
+        if (keyFrame >= 60) {
+            controlBar.setProgress(phase * 100);
+            directionValueEl.innerHTML = direction;
+            altitudeGauge.update(elevation * 3.28084);
+            speedGauge.update(speed)
+            keyFrame = 0;
+            const interpolatedTimeStamp = timestamp + mouseControl.state.timeStampShiftMilis
+            mapcontroller.setSkyAndLandColor(interpolatedTimeStamp, [pointX, pointY], elevation)
+           
+        } else {
+            keyFrame += 1;
+        }
+        hasStats && stats.update();
+    }
+
+
     function animate(justOnce) {
 
         let start = 0;
 
         function frame(time) {
+
             if (!start) start = time;
             const delta = (time - start) * controlBar.speed
             timeElapsed += delta;
             phase = timeElapsed / duration;
-
-            let [pointX,pointY,bearing, elevation, speed, timestamp, camPointX, camPointY] = lineIndex.interpolateValues(phase, mouseControl.state.distanceFromPlane)
-            // let alongRoute = point([pointX, pointY]);
-            debugger
-            if (!mouseControl.state.freeView) {
-                const cameraPoint = point([camPointX, camPointY]);
-
-                camera.position = mapboxgl.MercatorCoordinate.fromLngLat(
-                    {
-                        lng: cameraPoint.geometry.coordinates[0],
-                        lat: cameraPoint.geometry.coordinates[1]
-                    },
-                    elevation + mouseControl.state.elevationFromPlane
-                );
-
-                camera.setPitchBearing(mouseControl.state.mapPitch, bearing + mouseControl.state.cameraAngle)
-
-                map.setFreeCameraOptions(camera);
-
-            }
-
-
-            
-           
-            airplane.setCoords([pointX, pointY, elevation])
-
-            airplane.setRotation({ x: 0, y: 0, z: 180 - bearing })
-            
-            hasStats && stats.update();
+          
+            worker.postMessage({ data: { phase, distanceFromPlane:mouseControl.state.distanceFromPlane }, method: "tick" });
             start = time;
+            // let [pointX,pointY,bearing, elevation, speed, timestamp, camPointX, camPointY] = lineIndex.interpolateValues(phase, mouseControl.state.distanceFromPlane)
 
-            if (keyFrame >= 60) {
-                directionValueEl.innerHTML = lineIndex.direction(bearing);
-                altitudeGauge.update(elevation * 3.28084);
-                speedGauge.update(speed)
-                keyFrame = 0;
-                const interpolatedTimeStamp = timestamp + mouseControl.state.timeStampShiftMilis
-                mapcontroller.setSkyAndLandColor(interpolatedTimeStamp, [pointX, pointY], elevation)
-            } else {
-                keyFrame += 1;
-            }
+
+            // if (!mouseControl.state.freeView) {
+            //     const cameraPoint = point([camPointX, camPointY]);
+
+            //     camera.position = mapboxgl.MercatorCoordinate.fromLngLat(
+            //         {
+            //             lng: cameraPoint.geometry.coordinates[0],
+            //             lat: cameraPoint.geometry.coordinates[1]
+            //         },
+            //         elevation + mouseControl.state.elevationFromPlane
+            //     );
+
+            //     camera.setPitchBearing(mouseControl.state.mapPitch, bearing + mouseControl.state.cameraAngle)
+
+            //     map.setFreeCameraOptions(camera);
+
+            // }
+
+
+
+
+            // airplane.setCoords([pointX, pointY, elevation])
+
+            // airplane.setRotation({ x: 0, y: 0, z: 180 - bearing })
+
+            // hasStats && stats.update();
+
+            // start = time;
+            // justOnce && altitudeGauge.update(elevation) && speedGauge.update(speed);
+            // if (keyFrame >= 60) {
+            //     controlBar.setProgress(phase * 100);
+            //     directionValueEl.innerHTML = lineIndex.direction(bearing);
+            //     altitudeGauge.update(elevation * 3.28084);
+            //     speedGauge.update(speed)
+            //     keyFrame = 0;
+            //     const interpolatedTimeStamp = timestamp + mouseControl.state.timeStampShiftMilis
+            //     mapcontroller.setSkyAndLandColor(interpolatedTimeStamp, [pointX, pointY], elevation)
+            //     map.triggerRepaint()
+            // } else {
+            //     keyFrame += 1;
+            // }
 
             if (!justOnce && !controlBar.isPlaying) return;
-            controlBar.setProgress(phase * 100);
+
+            
             if (phase >= 1) {
                 document.querySelectorAll('.mdc-icon-button__icon').forEach(el => el.classList.toggle('mdc-icon-button__icon--on'));
                 controlBar.togglePlay();
                 return;
             };
-            !justOnce && window.requestAnimationFrame(frame);
-            justOnce && altitudeGauge.update(elevation) && speedGauge.update(speed);
 
+            
+            !justOnce && window.requestAnimationFrame(frame);
         }
 
         window.requestAnimationFrame(frame);
     }
+
 })()

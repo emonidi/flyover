@@ -14,9 +14,11 @@ self.addEventListener("message",(e)=>{
             break;
         case "tick":
             
-            let {phase} = e.data.data;
-            let [pointX,pointY,bearing, elevation, speed, timestamp] = lineIndex.interpolateValues(phase)
-            self.postMessage({type:"tick",data:{pointX,pointY,bearing, elevation, speed, timestamp}})
+            let {phase, distanceFromPlane} = e.data.data;
+            let [pointX,pointY,bearing, elevation, speed, timestamp, camPointX, camPointY] = lineIndex.interpolateValues(phase,distanceFromPlane)
+            let direction = lineIndex.direction(bearing);
+            self.postMessage({type:"tick",data:{pointX,pointY,bearing, elevation, speed, timestamp, camPointX, camPointY, direction}})
+            console.log([pointX, pointY])
         default:
 
     }

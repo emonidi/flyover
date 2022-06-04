@@ -45,12 +45,12 @@ export default class MapController {
                         // tiles:['https://mt1.google.com/vt/lyrs=s&x={x}&y={y}&z={z}&hl=en&s=Ga'], //google
                         tileSize: 512
                     },
-                    'night-earth':{
-                        type:'raster',
-                        //there is proxy here!!! remove for production
-                        tiles:['https://emonidi-cors-proxy.herokuapp.com/https://map1.vis.earthdata.nasa.gov/wmts-webmerc/VIIRS_CityLights_2012/default//GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpg'],
-                        tileSize: 512
-                    }, 
+                    // 'night-earth':{
+                    //     type:'raster',
+                    //     //there is proxy here!!! remove for production
+                    //     tiles:['https://emonidi-cors-proxy.herokuapp.com/https://map1.vis.earthdata.nasa.gov/wmts-webmerc/VIIRS_CityLights_2012/default//GoogleMapsCompatible_Level8/{z}/{y}/{x}.jpg'],
+                    //     tileSize: 512
+                    // }, 
                     'mapbox-dem': {
                         'type': 'raster-dem',
                         'url': 'mapbox://mapbox.mapbox-terrain-dem-v1',
@@ -64,15 +64,15 @@ export default class MapController {
                         source: 'map-tiler',
                         type: 'raster'
                     },
-                    {
-                        id:'night-earth',
-                        source:'night-earth',
-                        type:'raster',
-                        paint:{
-                            'raster-opacity':0
-                        }
+                    // {
+                    //     id:'night-earth',
+                    //     source:'night-earth',
+                    //     type:'raster',
+                    //     paint:{
+                    //         'raster-opacity':0
+                    //     }
                         
-                    }, 
+                    // }, 
                     {
                         'id': 'sky-layer',
                         'type': 'sky',
@@ -196,10 +196,10 @@ export default class MapController {
         
         this.map.setPaintProperty('sky-layer', 'sky-atmosphere-sun', [sunAzimuth, sunAltitude]);
         this.map.setPaintProperty('map-tiler', 'raster-brightness-max', this.sunAltitudeScale(sunPosition.altitude));
-        if((new Date(times.sunriseEnd).getTime() > timestamp || new Date(times.sunsetStart).getTime() < timestamp)) {
-            this.map.setPaintProperty('night-earth', 'raster-opacity', this.nightLightOpacityScale(elevation));
-        }else{
-            this.map.setPaintProperty('night-earth', 'raster-opacity', 0);
-        }
+        // if((new Date(times.sunriseEnd).getTime() > timestamp || new Date(times.sunsetStart).getTime() < timestamp)) {
+        //     this.map.setPaintProperty('night-earth', 'raster-opacity', this.nightLightOpacityScale(elevation));
+        // }else{
+        //     this.map.setPaintProperty('night-earth', 'raster-opacity', 0);
+        // }
     }
 }

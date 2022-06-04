@@ -20,7 +20,7 @@ export function createPathLaneModel(flightLine,tb){
 		depthTest: true,
 		blending: THREE.NormalBlending,
 		transparent: true,
-		repeat: new THREE.Vector2( 100*100,1 )
+		repeat: new THREE.Vector2( 25*100,1 )
     });
     geometry.computeVertexNormals()
     geometry.normalizeNormals()
