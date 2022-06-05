@@ -5,11 +5,14 @@ import Stats from 'https://threejs.org/examples/jsm/libs/stats.module.js';
 import { GUI } from 'https://threejs.org/examples/jsm/libs/lil-gui.module.min.js'
 import Odometer from 'odometer';
 import Hammer from 'hammerjs';
+import init, { LineIndex } from 'wasm';
 
 const hasStats = location.search.indexOf('stats') > 0;
-const worker = new Worker(new URL('./worker.js', import.meta.url), {
-    type: 'module'
-})
+
+// const worker = new Worker(new URL('./worker.js', import.meta.url), {
+//     type: 'module'
+// })
+
 import {
     point,
     lineString,
@@ -30,9 +33,7 @@ if (import.meta.hot) {
     })
 }
 (async () => {
-
-    mapboxgl.workerCount = 4;
-    mapboxgl.prewarm();
+    await init();
 
     const altitudeGauge = new Odometer({
         el: document.querySelector('#altitude_gauge'),
@@ -66,9 +67,9 @@ if (import.meta.hot) {
 
     flightLinesCollection.features = flightLinesCollection.features.filter(p => p !== undefined);
 
-    // let lineIndex = new LineIndex(flightLinesCollection, flightLine,.000001);
+    let lineIndex = new LineIndex(flightLinesCollection, flightLine,.00001);
 
-    worker.postMessage({ method: "init", data: { flightLinesCollection, flightLine, epsylon: 0 } });
+    // worker.postMessage({ method: "init", data: { flightLinesCollection, flightLine, epsylon: 0 } });
 
 
     let gui;
@@ -138,7 +139,7 @@ if (import.meta.hot) {
     hammer.on('panleft', (ev) => {
         ev.preventDefault();
         if (controlBar.isPlaying) {
-            mouseControl.setState('cameraAngle', mouseControl.state.cameraAngle + ev.distance / 100);
+            mouseControl.setState('cameraAngle', mouseControl.state.cameraAngle + ev.distance / 250);
             ev.preventDefault();
         }
     })
@@ -146,7 +147,7 @@ if (import.meta.hot) {
     hammer.on('panright', (ev) => {
         ev.preventDefault();
         if (controlBar.isPlaying) {
-            mouseControl.setState('cameraAngle', mouseControl.state.cameraAngle - ev.distance / 100);
+            mouseControl.setState('cameraAngle', mouseControl.state.cameraAngle - ev.distance / 250);
         }
 
     })
@@ -161,7 +162,7 @@ if (import.meta.hot) {
             } else if (mouseControl.state.mapPitch <= 0) {
                 mouseControl.setState('mapPitch', 0);
             } else {
-                mouseControl.setState('mapPitch', mouseControl.state.mapPitch - ev.distance / 100);
+                mouseControl.setState('mapPitch', mouseControl.state.mapPitch - ev.distance / 250);
             }
 
         }
@@ -177,7 +178,7 @@ if (import.meta.hot) {
             } else if (mouseControl.state.mapPitch <= 0) {
                 mouseControl.setState('mapPitch', 0);
             } else {
-                mouseControl.setState('mapPitch', mouseControl.state.mapPitch + ev.distance / 100);
+                mouseControl.setState('mapPitch', mouseControl.state.mapPitch + ev.distance / 250);
             }
 
         }
@@ -190,6 +191,7 @@ if (import.meta.hot) {
             phase = 0;
             timeElapsed = 0;
         }
+       
         animate();
 
     })
@@ -227,51 +229,54 @@ if (import.meta.hot) {
 
     let keyFrame = 0;
 
-    worker.onmessage = (ev) => {
+    // worker.onmessage = (ev) => {
 
-        if (!ev.data.type || !airplane) return;
-        let { pointX, pointY, bearing, elevation, speed, timestamp, camPointX, camPointY, direction } = ev.data.data
+    //     if (!ev.data.type || !airplane) return;
+    //     let { pointX, pointY, bearing, elevation, speed, timestamp, camPointX, camPointY, direction } = ev.data.data
 
-        airplane.setCoords([pointX, pointY, elevation])
+     
+    //     if (!mouseControl.state.freeView) {
+    //         const cameraPoint = point([camPointX, camPointY]);
 
-        airplane.setRotation({ x: 0, y: 0, z: 180 - bearing })
+    //         camera.position = mapboxgl.MercatorCoordinate.fromLngLat(
+    //             {
+    //                 lng: cameraPoint.geometry.coordinates[0],
+    //                 lat: cameraPoint.geometry.coordinates[1]
+    //             },
+    //             elevation + mouseControl.state.elevationFromPlane
+    //         );
 
-        if (!mouseControl.state.freeView) {
-            const cameraPoint = point([camPointX, camPointY]);
+    //         camera.setPitchBearing(mouseControl.state.mapPitch, bearing + mouseControl.state.cameraAngle)
 
-            camera.position = mapboxgl.MercatorCoordinate.fromLngLat(
-                {
-                    lng: cameraPoint.geometry.coordinates[0],
-                    lat: cameraPoint.geometry.coordinates[1]
-                },
-                elevation + mouseControl.state.elevationFromPlane
-            );
+    //         map.setFreeCameraOptions(camera);
 
-            camera.setPitchBearing(mouseControl.state.mapPitch, bearing + mouseControl.state.cameraAngle)
+    //     }
+    //     airplane.setCoords([pointX, pointY, elevation])
 
-            map.setFreeCameraOptions(camera);
+    //     airplane.setRotation({ x: 0, y: 0, z: 180 - bearing })
 
-        }
-        map.triggerRepaint();
-        if (keyFrame >= 60) {
-            controlBar.setProgress(phase * 100);
-            directionValueEl.innerHTML = direction;
-            altitudeGauge.update(elevation * 3.28084);
-            speedGauge.update(speed)
-            keyFrame = 0;
-            const interpolatedTimeStamp = timestamp + mouseControl.state.timeStampShiftMilis
-            mapcontroller.setSkyAndLandColor(interpolatedTimeStamp, [pointX, pointY], elevation)
+      
+    //     if (keyFrame >= 60) {
+    //         debugger;
+    //         controlBar.setProgress(phase * 100);
+    //         directionValueEl.innerHTML = direction;
+    //         altitudeGauge.update(elevation * 3.28084);
+    //         speedGauge.update(speed)
+    //         keyFrame = 0;
+    //         const interpolatedTimeStamp = timestamp + mouseControl.state.timeStampShiftMilis
+    //         mapcontroller.setSkyAndLandColor(interpolatedTimeStamp, [pointX, pointY], elevation)
 
-        } else {
-            keyFrame += 1;
-        }
-        hasStats && stats.update();
-    }
+    //     } else {
+    //         keyFrame += 1;
+    //     }
+    //     hasStats && stats.update();
+    // }
 
 
     function animate(justOnce) {
 
         let start = 0;
+       
 
         function frame(time) {
 
@@ -279,52 +284,52 @@ if (import.meta.hot) {
             const delta = (time - start) * controlBar.speed
             timeElapsed += delta;
             phase = timeElapsed / duration;
+            
+            // worker.postMessage({ data: { phase, distanceFromPlane: mouseControl.state.distanceFromPlane }, method: "tick" });
+           
+            let [pointX,pointY,bearing, elevation, speed, timestamp, camPointX, camPointY] = lineIndex.interpolateValues(phase, mouseControl.state.distanceFromPlane)
+            
+            airplane.setCoords([pointX, pointY, elevation])
 
-            worker.postMessage({ data: { phase, distanceFromPlane: mouseControl.state.distanceFromPlane }, method: "tick" });
-            start = time;
-            // let [pointX,pointY,bearing, elevation, speed, timestamp, camPointX, camPointY] = lineIndex.interpolateValues(phase, mouseControl.state.distanceFromPlane)
+            airplane.setRotation({ x: 0, y: 0, z: 180 - bearing })
 
+            if (!mouseControl.state.freeView) {
+                const cameraPoint = point([camPointX, camPointY]);
 
-            // if (!mouseControl.state.freeView) {
-            //     const cameraPoint = point([camPointX, camPointY]);
+                camera.position = mapboxgl.MercatorCoordinate.fromLngLat(
+                    {
+                        lng: cameraPoint.geometry.coordinates[0],
+                        lat: cameraPoint.geometry.coordinates[1]
+                    },
+                    elevation + mouseControl.state.elevationFromPlane
+                );
+               
+                camera.setPitchBearing(Math.ceil(mouseControl.state.mapPitch), bearing + mouseControl.state.cameraAngle)
+                
+                map.setFreeCameraOptions(camera);
 
-            //     camera.position = mapboxgl.MercatorCoordinate.fromLngLat(
-            //         {
-            //             lng: cameraPoint.geometry.coordinates[0],
-            //             lat: cameraPoint.geometry.coordinates[1]
-            //         },
-            //         elevation + mouseControl.state.elevationFromPlane
-            //     );
-
-            //     camera.setPitchBearing(mouseControl.state.mapPitch, bearing + mouseControl.state.cameraAngle)
-
-            //     map.setFreeCameraOptions(camera);
-
-            // }
+            }
 
 
 
 
-            // airplane.setCoords([pointX, pointY, elevation])
 
-            // airplane.setRotation({ x: 0, y: 0, z: 180 - bearing })
+            hasStats && stats.update();
 
-            // hasStats && stats.update();
-
-            // start = time;
-            // justOnce && altitudeGauge.update(elevation) && speedGauge.update(speed);
-            // if (keyFrame >= 60) {
-            //     controlBar.setProgress(phase * 100);
-            //     directionValueEl.innerHTML = lineIndex.direction(bearing);
-            //     altitudeGauge.update(elevation * 3.28084);
-            //     speedGauge.update(speed)
-            //     keyFrame = 0;
-            //     const interpolatedTimeStamp = timestamp + mouseControl.state.timeStampShiftMilis
-            //     mapcontroller.setSkyAndLandColor(interpolatedTimeStamp, [pointX, pointY], elevation)
-            //     map.triggerRepaint()
-            // } else {
-            //     keyFrame += 1;
-            // }
+            
+            justOnce && altitudeGauge.update(elevation) && speedGauge.update(speed);
+            if (keyFrame >= 60) {
+                controlBar.setProgress(phase * 100);
+                directionValueEl.innerHTML = lineIndex.direction(bearing);
+                altitudeGauge.update(elevation * 3.28084);
+                speedGauge.update(speed)
+                keyFrame = 0;
+                const interpolatedTimeStamp = timestamp + mouseControl.state.timeStampShiftMilis
+                mapcontroller.setSkyAndLandColor(interpolatedTimeStamp, [pointX, pointY], elevation)
+                
+            } else {
+                keyFrame += 1;
+            }
 
             if (!justOnce && !controlBar.isPlaying) return;
 
@@ -335,7 +340,7 @@ if (import.meta.hot) {
                 return;
             };
 
-
+            start = time;
             !justOnce && window.requestAnimationFrame(frame);
         }
 

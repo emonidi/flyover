@@ -3,8 +3,7 @@ import { Threebox } from 'threebox-plugin';
 import { getPosition, getTimes } from 'suncalc';
 import {scaleLinear, scaleSequential} from 'd3-scale';
 import { createPathLaneModel } from './pahtLaneModel';
-import config from './config';
-import PinchZoom from 'pinch-zoom-js';
+
 
 export default class MapController {
 
@@ -23,7 +22,14 @@ export default class MapController {
         })
         this.nightLightOpacityScale = scaleSequential([0,1500], [0,.5]);
         this.sunAltitudeScale = scaleLinear([0,Math.PI/2],[0.5,1]);
-       
+        // this.map.getCanvas().addEventListener("webglcontextlost", function(event) {
+        //     alert("COntext lost")
+            
+        //     this.debuggermap = this.init(flight);
+           
+        //     // this.initializeScene(flightLine,flight,flightLinesCollection)
+        //     event.preventDefault();
+        // }, false);
        
     }
 
@@ -97,7 +103,7 @@ export default class MapController {
         const { map } = this;
         map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1 });
         
-
+        
        
         
 
@@ -147,28 +153,19 @@ export default class MapController {
                 // window.tb.add(window.tb.line({ geometry: flightLine.geometry.coordinates, color: "red", width: 20, lincap:"round",linjoin:"round" }));
                
                 window.tb.loadObj(options, (model, err) => {
+                    line();
+                    this.map.triggerRepaint();
                     model.traverse(function (object) {
                         object.frustumCulled = false;
                     });
-                    // model.selected = true;
+                   
                     window.airplane = model.setCoords([...flight.features[0].geometry.coordinates, flight.features[0].properties.baro_altitude]);
 
                     window.tb.add(window.airplane);
-                  
-                    line();
+                    this.map.triggerRepaint();
+                    
                     document.getElementById('preload').style.display = 'none';
-                    map.flyTo({
-                        center: [...flight.features[0].geometry.coordinates],
-                        zoom: 18,
-                        pitch: 82,
-                        bearing: flightLinesCollection.features[0].properties.bearing[0],
-                        essential: true,
-                        duration: 4000
-                    });
-            
-                    map.once('moveend', () => {
-                        this.animate(true)
-                    })
+                    setTimeout(()=>this.animate(true),250)
                 })
             },
             

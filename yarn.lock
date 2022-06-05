@@ -2735,10 +2735,10 @@ lit@^2.0.0:
     lit-element "^3.2.0"
     lit-html "^2.2.0"
 
-mapbox-gl@^2.8.2:
-  version "2.8.2"
-  resolved "https://registry.yarnpkg.com/mapbox-gl/-/mapbox-gl-2.8.2.tgz#d1e68536878018645ba484e434cea00b5b3ab7f8"
-  integrity sha512-73TgEQlh15TF1UeYhej9Tz1iU4ZhuxIwM6t+e6MxaA7Mu9vqUCZc1kZtZRAXrVeMcDHBSO6gUUjeDBOnsUZVmQ==
+mapbox-gl@2.8.0:
+  version "2.8.0"
+  resolved "https://registry.yarnpkg.com/mapbox-gl/-/mapbox-gl-2.8.0.tgz#698f028575f202d25f2ccb5d6359761d1affb8e2"
+  integrity sha512-sP7TclFDmGhZWfcBlptnA24xO9T4a419W2Y6znGvuRXLkucnGErDIG+/7WLVDrebMYp4E2FtCG+1RtGcYVRIFQ==
   dependencies:
     "@mapbox/geojson-rewind" "^0.5.1"
     "@mapbox/geojson-types" "^1.0.2"
@@ -3172,10 +3172,10 @@ three@^0.139.2:
   resolved "https://registry.yarnpkg.com/three/-/three-0.139.2.tgz#b110799a15736df673b9293e31653a4ac73648dd"
   integrity sha512-gV7q7QY8rogu7HLFZR9cWnOQAUedUhu2WXAnpr2kdXZP9YDKsG/0ychwQvWkZN5PlNw9mv5MoCTin6zNTXoONg==
 
-threebox-plugin@^2.2.6:
-  version "2.2.6"
-  resolved "https://registry.yarnpkg.com/threebox-plugin/-/threebox-plugin-2.2.6.tgz#3b0eaa1bc801af8029883428eb58d32619284c02"
-  integrity sha512-/wIRuFKtCJZCkCqmN7mVqSgD+5r7L88ZniXXgQjkQctCHdESLduNmRBLFbM86zEp4l+RDVVmDroKMYApwf/kCw==
+threebox-plugin@^2.2.7:
+  version "2.2.7"
+  resolved "https://registry.yarnpkg.com/threebox-plugin/-/threebox-plugin-2.2.7.tgz#7879e7c24a64197c31e15d92a6b1234dc93ef96b"
+  integrity sha512-H87Nm4w1PfisHPHzavTGXlwIoJpx2+QU57GooQYIhF51lsg+U5A0KGf3Jrv/HWsLCGOwV2BTnv7UTLfpO1EccQ==
 
 tinyqueue@^2.0.3:
   version "2.0.3"
