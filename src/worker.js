@@ -18,7 +18,7 @@ self.addEventListener("message",(e)=>{
             let [pointX,pointY,bearing, elevation, speed, timestamp, camPointX, camPointY] = lineIndex.interpolateValues(phase,distanceFromPlane)
             let direction = lineIndex.direction(bearing);
             self.postMessage({type:"tick",data:{pointX,pointY,bearing, elevation, speed, timestamp, camPointX, camPointY, direction}})
-            console.log([pointX, pointY])
+         
         default:
 
     }

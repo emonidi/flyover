@@ -33,8 +33,8 @@ if (import.meta.hot) {
 }
 (async () => {
 
-    mapboxgl.workerCount = 12;
-    // mapboxgl.prewarm();
+    mapboxgl.workerCount = 4;
+    mapboxgl.prewarm();
 
     const wasm = await init();
 
@@ -74,7 +74,7 @@ if (import.meta.hot) {
 
     // let lineIndex = new LineIndex(flightLinesCollection, flightLine,.000001);
     
-    worker.postMessage({ method: "init", data: { flightLinesCollection, flightLine, epsylon: .000009 } });
+    worker.postMessage({ method: "init", data: { flightLinesCollection, flightLine, epsylon: 0} });
 
 
     let gui;
@@ -142,36 +142,39 @@ if (import.meta.hot) {
     })
 
     hammer.on('panleft', (ev) => {
+        ev.preventDefault();
         if (controlBar.isPlaying) {
-            mouseControl.setState('cameraAngle', mouseControl.state.cameraAngle - ev.srcEvent.movementX / 10);
+            mouseControl.setState('cameraAngle', mouseControl.state.cameraAngle + ev.distance / 100);
             ev.preventDefault();
         }
     })
 
     hammer.on('panright', (ev) => {
+        ev.preventDefault();
         if (controlBar.isPlaying) {
-            mouseControl.setState('cameraAngle', mouseControl.state.cameraAngle - ev.srcEvent.movementX / 10);
-            ev.preventDefault();
+            mouseControl.setState('cameraAngle', mouseControl.state.cameraAngle - ev.distance / 100);
         }
+        
     })
 
     hammer.on('panup', (ev) => {
-
+        ev.preventDefault();
         if (controlBar.isPlaying) {
             console.log(ev.distance)
-            console.log(mouseControl.state.mapPitch)
+          
             if (mouseControl.state.mapPitch >= 83) {
                 mouseControl.setState('mapPitch', 82);
             } else if (mouseControl.state.mapPitch <= 0) {
                 mouseControl.setState('mapPitch', 0);
             } else {
-                mouseControl.setState('mapPitch', mouseControl.state.mapPitch + ev.srcEvent.movementY / 10);
+                mouseControl.setState('mapPitch', mouseControl.state.mapPitch - ev.distance / 100);
             }
-            ev.preventDefault();
+            
         }
     })
 
     hammer.on('pandown', (ev) => {
+        ev.preventDefault();
         if (controlBar.isPlaying) {
             console.log(ev.distance)
             console.log(mouseControl.state.mapPitch)
@@ -180,9 +183,9 @@ if (import.meta.hot) {
             } else if (mouseControl.state.mapPitch <= 0) {
                 mouseControl.setState('mapPitch', 0);
             } else {
-                mouseControl.setState('mapPitch', mouseControl.state.mapPitch + ev.srcEvent.movementY / 10);
+                mouseControl.setState('mapPitch', mouseControl.state.mapPitch +  ev.distance / 100);
             }
-            ev.preventDefault();
+            
         }
     })
 
@@ -232,7 +235,7 @@ if (import.meta.hot) {
 
     worker.onmessage = (ev) => {
        
-        if(!ev.data.type) return;
+        if(!ev.data.type || !airplane) return;
         let {pointX, pointY, bearing, elevation, speed, timestamp, camPointX, camPointY, direction} = ev.data.data
 
         airplane.setCoords([pointX, pointY, elevation])
