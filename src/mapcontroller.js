@@ -18,9 +18,8 @@ export default class MapController {
         
         this.map.on('load', () => {
             this.initializeScene(flightLine, flight, flightLinesCollection);
-            document.getElementById('preload').style.display = 'none';
+            
             this.map.addControl(new mapboxgl.AttributionControl(), 'top-left');
-           
         })
         this.nightLightOpacityScale = scaleSequential([0,1500], [0,.5]);
         this.sunAltitudeScale = scaleLinear([0,Math.PI/2],[0.5,1]);
@@ -97,18 +96,7 @@ export default class MapController {
     initializeScene(flightLine, flight, flightLinesCollection) {
         const { map } = this;
         map.setTerrain({ 'source': 'mapbox-dem', 'exaggeration': 1 });
-        map.flyTo({
-            center: [...flight.features[0].geometry.coordinates],
-            zoom: 16.5,
-            pitch: 82,
-            bearing: flightLinesCollection.features[0].properties.bearing[0],
-            essential: true,
-            duration: 1600
-        });
-
-        map.once('moveend', () => {
-            this.animate(true)
-        })
+        
 
        
         
@@ -142,7 +130,7 @@ export default class MapController {
                     transparent:false
                 }
                 
-                window.tb.camera.frustumCulled = false;
+                
                 function line(){
                     const [model,position] = createPathLaneModel(flightLine,window.tb);
                     window.pathModel = model;
@@ -152,9 +140,10 @@ export default class MapController {
                     });
                     model.setCoords(position)
                     window.tb.add(model);
+                  
                 }
 
-                line();
+               
                 // window.tb.add(window.tb.line({ geometry: flightLine.geometry.coordinates, color: "red", width: 20, lincap:"round",linjoin:"round" }));
                
                 window.tb.loadObj(options, (model, err) => {
@@ -165,8 +154,21 @@ export default class MapController {
                     window.airplane = model.setCoords([...flight.features[0].geometry.coordinates, flight.features[0].properties.baro_altitude]);
 
                     window.tb.add(window.airplane);
-
-                   
+                  
+                    line();
+                    document.getElementById('preload').style.display = 'none';
+                    map.flyTo({
+                        center: [...flight.features[0].geometry.coordinates],
+                        zoom: 18,
+                        pitch: 82,
+                        bearing: flightLinesCollection.features[0].properties.bearing[0],
+                        essential: true,
+                        duration: 4000
+                    });
+            
+                    map.once('moveend', () => {
+                        this.animate(true)
+                    })
                 })
             },
             
